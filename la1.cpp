@@ -108,13 +108,26 @@ int main(int argc, char **argv)
         Dataset *testDataset = NULL;  // This should be corrected
 
         // Scale dataset. Use the functions you have in util.h and util.cpp
-        // if (nflag) {
-        // ...
-        //}
+        if (nflag)
+        {
+            //hay que hacer más cosas, esto no está acabado todavía
+
+            double *minDataTrain, *minDataTest, *maxDataTrain, *maxDataTest;
+            obtainMaxMinValuesFromMatrix(trainDataset->inputs, trainDataset->nOfPatterns, trainDataset->nOfInputs, minDataTrain, maxDataTrain);
+            obtainMaxMinValuesFromMatrix(testDataset->inputs, testDataset->nOfPatterns, testDataset->nOfInputs, minDataTest, maxDataTest);
+
+            minMaxScalerDataSetInputs(trainDataset, -1, 1, minDataTrain, maxDataTrain);
+            minMaxScalerDataSetInputs(testDataset, -1, 1, minDataTest, maxDataTest);
+        }
 
         // Initialize topology vector
         int layers = lvalue;
-        int *topology = NULL; // This should be corrected
+        int *topology = (int *)malloc(layers * sizeof(int));
+
+        for (int i = 0; i < layers; i++)
+        {
+            topology[i] = hvalue;
+        }
 
         // Initialize the network using the topology vector
         mlp.initialize(layers + 2, topology);
