@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 
     // a: Option that requires an argument
     // a:: The argument required is optional
-    while ((c = getopt(argc, argv, "t:T:i:l:h:e:m:n::w:p")) != -1)
+    while ((c = getopt(argc, argv, "t:T::i::l:h::e::m::n::w:p")) != -1)
     {
         // The parameters needed for using the optional prediction mode of Kaggle have been included.
         // You should add the rest of parameters needed for the lab assignment.
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
             pflag = true;
             break;
         case '?':
-            if (optopt == 't' or optopt == 'T' or optopt == 'i' or optopt == 'l' or optopt == 'h' or optopt == 'e' or optopt == 'm' || optopt == 'w' || optopt == 'p')
+            if (optopt == 't' or optopt == 'l' || optopt == 'w' || optopt == 'p')
                 fprintf(stderr, "The option -%c requires an argument.\n", optopt);
             else if (isprint(optopt))
                 fprintf(stderr, "Unknown option `-%c'.\n", optopt);
@@ -104,8 +104,8 @@ int main(int argc, char **argv)
         int iterations = ivalue;
 
         // Read training and test data: call to util::readData(...)
-        Dataset *trainDataset = NULL; // This should be corrected
-        Dataset *testDataset = NULL;  // This should be corrected
+        Dataset *trainDataset = util::readData(tvalue);
+        Dataset *testDataset = util::readData(Tvalue);  
 
         // Scale dataset. Use the functions you have in util.h and util.cpp
         if (nflag)
@@ -113,11 +113,11 @@ int main(int argc, char **argv)
             //hay que hacer más cosas, esto no está acabado todavía
 
             double *minDataTrain, *minDataTest, *maxDataTrain, *maxDataTest;
-            obtainMaxMinValuesFromMatrix(trainDataset->inputs, trainDataset->nOfPatterns, trainDataset->nOfInputs, minDataTrain, maxDataTrain);
-            obtainMaxMinValuesFromMatrix(testDataset->inputs, testDataset->nOfPatterns, testDataset->nOfInputs, minDataTest, maxDataTest);
+            util::obtainMaxMinValuesFromMatrix(trainDataset->inputs, trainDataset->nOfPatterns, trainDataset->nOfInputs, minDataTrain, maxDataTrain);
+            util::obtainMaxMinValuesFromMatrix(testDataset->inputs, testDataset->nOfPatterns, testDataset->nOfInputs, minDataTest, maxDataTest);
 
-            minMaxScalerDataSetInputs(trainDataset, -1, 1, minDataTrain, maxDataTrain);
-            minMaxScalerDataSetInputs(testDataset, -1, 1, minDataTest, maxDataTest);
+            util::minMaxScalerDataSetInputs(trainDataset, -1, 1, minDataTrain, maxDataTrain);
+            util::minMaxScalerDataSetInputs(testDataset, -1, 1, minDataTest, maxDataTest);
         }
 
         // Initialize topology vector
