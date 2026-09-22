@@ -48,12 +48,12 @@ Dataset *util::readData(const char *fileName)
     {
         getline(myFile, line); // Read a line
         istringstream iss(line);
-        iss >> dataset->nOfInputs;
-        iss >> dataset->nOfOutputs;
-        iss >> dataset->nOfPatterns;
+        iss >> dataset->_nOfInputs;
+        iss >> dataset->_nOfOutputs;
+        iss >> dataset->_nOfPatterns;
     }
-    dataset->inputs = new double *[dataset->nOfPatterns];
-    dataset->outputs = new double *[dataset->nOfPatterns];
+    dataset->_inputs = new double *[dataset->nOfPatterns];
+    dataset->_outputs = new double *[dataset->nOfPatterns];
 
     for (i = 0; i < dataset->nOfPatterns; i++)
     {
