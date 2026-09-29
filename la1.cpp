@@ -13,13 +13,15 @@
 #include <numeric>
 #include <limits>
 #include <cstdlib>
-#include <unistd.h>
 
 #include "mc/MultilayerPerceptron.h"
 #include "mc/util.h"
 
 int main(int argc, char **argv)
 {
+    // Convert command-line arguments to std::vector<std::string>
+    std::vector<std::string> args(argv, argv + argc);
+
     // Process arguments of the command line
     bool wflag = false, pflag = false, nflag = false;
 
@@ -32,9 +34,6 @@ int main(int argc, char **argv)
     int hvalue = 5;
     double evalue = 0.1;
     double mvalue = 0.9;
-    int c = 0;
-
-    opterr = 0;
 
     // Command line argument flags:
     // -t: Training file
@@ -47,57 +46,118 @@ int main(int argc, char **argv)
     // -n: Normalize dataset
     // -w: Weight file
     // -p: Kaggle prediction mode
-    while ((c = getopt(argc, argv, "t:T:i:l:h:e:m:nw:p")) != -1)
+    for (size_t i = 1; i < args.size(); ++i)
     {
-        switch (c)
+        const std::string &arg = args[i];
+
+        if (arg == "-t")
         {
-        case 't':
-            if (optarg) tvalue = optarg;
-            break;
-        case 'T':
-            if (optarg) Tvalue = optarg;
-            break;
-        case 'i':
-            if (optarg) ivalue = std::stoi(optarg);
-            break;
-        case 'l':
-            if (optarg) lvalue = std::stoi(optarg);
-            break;
-        case 'h':
-            if (optarg) hvalue = std::stoi(optarg);
-            break;
-        case 'e':
-            if (optarg) evalue = std::stod(optarg);
-            break;
-        case 'm':
-            if (optarg) mvalue = std::stod(optarg);
-            break;
-        case 'n':
-            nflag = true;
-            break;
-        case 'w':
-            wflag = true;
-            if (optarg) wvalue = optarg;
-            break;
-        case 'p':
-            pflag = true;
-            break;
-        case '?':
-            if (optopt == 't' || optopt == 'T' || optopt == 'i' || optopt == 'l' ||
-                optopt == 'h' || optopt == 'e' || optopt == 'm' || optopt == 'w')
+            if (i + 1 < args.size())
             {
-                std::cerr << "The option -" << static_cast<char>(optopt) << " requires an argument.\n";
-            }
-            else if (isprint(optopt))
-            {
-                std::cerr << "Unknown option `-" << static_cast<char>(optopt) << "'.\n";
+                tvalue = args[++i];
             }
             else
             {
-                std::cerr << "Unknown character `\\x" << std::hex << optopt << "'.\n";
+                std::cerr << "The option -t requires an argument.\n";
+                return EXIT_FAILURE;
             }
-            return EXIT_FAILURE;
-        default:
+        }
+        else if (arg == "-T")
+        {
+            if (i + 1 < args.size())
+            {
+                Tvalue = args[++i];
+            }
+            else
+            {
+                std::cerr << "The option -T requires an argument.\n";
+                return EXIT_FAILURE;
+            }
+        }
+        else if (arg == "-i")
+        {
+            if (i + 1 < args.size())
+            {
+                ivalue = std::stoi(args[++i]);
+            }
+            else
+            {
+                std::cerr << "The option -i requires an argument.\n";
+                return EXIT_FAILURE;
+            }
+        }
+        else if (arg == "-l")
+        {
+            if (i + 1 < args.size())
+            {
+                lvalue = std::stoi(args[++i]);
+            }
+            else
+            {
+                std::cerr << "The option -l requires an argument.\n";
+                return EXIT_FAILURE;
+            }
+        }
+        else if (arg == "-h")
+        {
+            if (i + 1 < args.size())
+            {
+                hvalue = std::stoi(args[++i]);
+            }
+            else
+            {
+                std::cerr << "The option -h requires an argument.\n";
+                return EXIT_FAILURE;
+            }
+        }
+        else if (arg == "-e")
+        {
+            if (i + 1 < args.size())
+            {
+                evalue = std::stod(args[++i]);
+            }
+            else
+            {
+                std::cerr << "The option -e requires an argument.\n";
+                return EXIT_FAILURE;
+            }
+        }
+        else if (arg == "-m")
+        {
+            if (i + 1 < args.size())
+            {
+                mvalue = std::stod(args[++i]);
+            }
+            else
+            {
+                std::cerr << "The option -m requires an argument.\n";
+                return EXIT_FAILURE;
+            }
+        }
+        else if (arg == "-n")
+        {
+            nflag = true;
+        }
+        else if (arg == "-w")
+        {
+            wflag = true;
+            if (i + 1 < args.size())
+            {
+                wvalue = args[++i];
+            }
+            else
+            {
+                std::cerr << "The option -w requires an argument.\n";
+                return EXIT_FAILURE;
+            }
+        }
+        else if (arg == "-p")
+        {
+            pflag = true;
+        }
+        else
+        {
+            std::cerr << "Unknown option `" << arg << "'.\n";
             return EXIT_FAILURE;
         }
     }
@@ -176,7 +236,7 @@ int main(int argc, char **argv)
             std::cout << "**********\n";
             std::cout << "SEED " << seeds[i] << "\n";
             std::cout << "**********\n";
-            std::srand(seeds[i]);
+            util::setSeed(seeds[i]);
             mlp.runOnlineBackPropagation(trainDataset, testDataset, iterations, trainErrors[i], testErrors[i]);
             std::cout << "We end!! => Final test error: " << testErrors[i] << "\n";
 

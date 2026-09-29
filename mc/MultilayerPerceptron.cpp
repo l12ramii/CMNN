@@ -12,33 +12,60 @@
 #include <sstream>
 #include <string>
 #include <limits>
-#include <math.h>
+#include <cmath>
 
 using namespace mc;
 using namespace std;
 using namespace util;
 
+/*
 // ------------------------------
 // Constructor: Default values for all the parameters
 MultilayerPerceptron::MultilayerPerceptron()
 {
 }
+*/
 
 // ------------------------------
 // Allocate memory for the data structures
-// nl is the number of layers and npl is a vetor containing the number of neurons in every layer
+// nl is the number of layers and npl is a vector containing the number of neurons in every layer
 // Give values to Layer* layers
-int MultilayerPerceptron::initialize(int nl, const std::vector<int> &npl)
+MultilayerPerceptron::MultilayerPerceptron(int nl, const std::vector<int> &npl)
 {
-	return 1;
+	// Asignar número de capas
+	this->nOfLayers = nl;
+	this->layers.resize(nl);
+
+	// Para cada capa, llenarla de neuronas
+	for (int i = 0; i < nl; i++)
+	{
+		this->layers[i].nOfNeurons = npl[i];
+		this->layers[i].neurons.resize(npl[i]);
+		// para la capa >1, el numero de inputs es el numero de neuronas de la capa anterior + el sesgo
+		int nInputs = 0;
+		if (i > 0)
+		{
+			nInputs = this->layers[i - 1].nOfNeurons + 1;
+		}
+		// para cada neurona, inicializar los pesos a cero
+		for (int j = 0; j < npl[i]; j++)
+		{
+			this->layers[i].neurons[j].w.assign(nInputs, 0.0);
+			this->layers[i].neurons[j].deltaW.assign(nInputs, 0.0);
+			this->layers[i].neurons[j].lastDeltaW.assign(nInputs, 0.0);
+			this->layers[i].neurons[j].wCopy.assign(nInputs, 0.0);
+		}
+	}
 }
 
+/*
 // ------------------------------
 // DESTRUCTOR: free memory
 MultilayerPerceptron::~MultilayerPerceptron()
 {
 	// freeMemory();
 }
+*/
 
 /*
 // ------------------------------
@@ -52,6 +79,16 @@ void MultilayerPerceptron::freeMemory() {
 // Feel all the weights (w) with random numbers between -1 and +1
 void MultilayerPerceptron::randomWeights()
 {
+	for (auto &layer : this->layers)
+	{
+		for (auto &neuron : layer.neurons)
+		{
+			for (auto &weight : neuron.w)
+			{
+				weight = util::randomDouble(-1.0, 1.0);
+			}
+		}
+	}
 }
 
 // ------------------------------
@@ -62,7 +99,7 @@ void MultilayerPerceptron::feedInputs(const std::vector<double> &input)
 
 // ------------------------------
 // Get the outputs predicted by the network (out vector the output layer) and save them in the vector passed as an argument
-void MultilayerPerceptron::getOutputs(std::vector<double>& output)
+void MultilayerPerceptron::getOutputs(std::vector<double> &output)
 {
 }
 
@@ -86,14 +123,14 @@ void MultilayerPerceptron::forwardPropagate()
 
 // ------------------------------
 // Obtain the output error (MSE) of the out vector of the output layer wrt a target vector and return it
-double MultilayerPerceptron::obtainError(const std::vector<double>& target)
+double MultilayerPerceptron::obtainError(const std::vector<double> &target)
 {
 	return -1;
 }
 
 // ------------------------------
 // Backpropagate the output error wrt a vector passed as an argument, from the last layer to the first one <--<--
-void MultilayerPerceptron::backpropagateError(const std::vector<double>& target)
+void MultilayerPerceptron::backpropagateError(const std::vector<double> &target)
 {
 }
 
@@ -118,7 +155,7 @@ void MultilayerPerceptron::printNetwork()
 // ------------------------------
 // Perform an epoch: forward propagate the inputs, backpropagate the error and adjust the weights
 // input is the input vector of the pattern and target is the desired output vector of the pattern
-void MultilayerPerceptron::performEpochOnline(const std::vector<double>& input, const std::vector<double>& target)
+void MultilayerPerceptron::performEpochOnline(const std::vector<double> &input, const std::vector<double> &target)
 {
 }
 
@@ -126,8 +163,7 @@ void MultilayerPerceptron::performEpochOnline(const std::vector<double>& input, 
 // Perform an online training for a specific trainDataset
 void MultilayerPerceptron::trainOnline(const util::Dataset &trainDataset)
 {
-	int i;
-	for (i = 0; i < trainDataset.nOfPatterns; i++)
+	for (size_t i = 0; i < trainDataset.nOfPatterns; i++)
 	{
 		performEpochOnline(trainDataset.inputs[i], trainDataset.outputs[i]);
 	}
@@ -145,14 +181,12 @@ double MultilayerPerceptron::test(const util::Dataset &testDataset)
 // Your have to use the format from Kaggle: two columns (Id y predictied)
 void MultilayerPerceptron::predict(const util::Dataset &pDatosTest)
 {
-	int i;
-	int j;
 	int numSalidas = layers[nOfLayers - 1].nOfNeurons;
 	std::vector<double> obtained = std::vector<double>(numSalidas);
 
 	cout << "Id,Predicted" << endl;
 
-	for (i = 0; i < pDatosTest.nOfPatterns; i++)
+	for (size_t i = 0; i < pDatosTest.nOfPatterns; i++)
 	{
 
 		feedInputs(pDatosTest.inputs[i]);
@@ -161,7 +195,7 @@ void MultilayerPerceptron::predict(const util::Dataset &pDatosTest)
 
 		cout << i;
 
-		for (j = 0; j < numSalidas; j++)
+		for (size_t j = 0; j < numSalidas; j++)
 			cout << "," << obtained[j];
 		cout << endl;
 	}
@@ -287,7 +321,7 @@ bool MultilayerPerceptron::readWeights(const std::string &archivo)
 		f >> npl[i];
 
 	// Initialize vectors and data structures
-	initialize(nl, npl);
+	*this = MultilayerPerceptron(nl, npl);
 
 	// Read weights
 	for (int i = 1; i < nOfLayers; i++)

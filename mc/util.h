@@ -39,6 +39,9 @@ namespace util
         std::vector<std::vector<double>> outputs; /* Matrix with the outputs of the problem */
     };
 
+    // Set the seed for random number generation
+    void setSeed(int seed);
+
     // Obtain an integer random number in the range [low, high]
     int randomInt(int low, int high);
 
@@ -52,35 +55,7 @@ namespace util
     void printDataset(const Dataset &dataset, int len = 0, std::ostream &os = std::cout);
 
     // Generate a vector of unique random integers in the range [min, max]
-    inline std::vector<int> integerRandomVectorWithoutRepeating(int min, int max, int howMany)
-    {
-        if (min > max || howMany <= 0)
-        {
-            return {};
-        }
-
-        int total = max - min + 1;
-        if (howMany > total)
-        {
-            howMany = total;
-        }
-
-        std::vector<int> numbers(total);
-        std::iota(numbers.begin(), numbers.end(), min);
-
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-
-        for (int i = 0; i < howMany; ++i)
-        {
-            std::uniform_int_distribution<int> dist(i, total - 1);
-            int selectedIndex = dist(gen);
-            std::swap(numbers[i], numbers[selectedIndex]);
-        }
-
-        numbers.resize(howMany);
-        return numbers;
-    }
+    std::vector<int> integerRandomVectorWithoutRepeating(int min, int max, int howMany);
 
     // Alias to retain compatibility with legacy typo in function name
     inline std::vector<int> integerRandomVectoWithoutRepeating(int min, int max, int howMany)
@@ -90,7 +65,7 @@ namespace util
 
     // Transform a scalar x by scaling it to a given range [minAllowed, maxAllowed] considering the min
     // and max values of the feature in the dataset (minData and maxData).
-    double minMaxScaler(double x, double minAllowed, double maxAllowed, double minData, double maxData)
+    inline double minMaxScaler(double x, double minAllowed, double maxAllowed, double minData, double maxData)
     {
         if (maxData == minData)
         {

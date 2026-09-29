@@ -1,7 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <cstdlib> // To establish the seed srand() and generate pseudorandom numbers rand()
+#include <random>
+#include <numeric>
+#include <algorithm>
 
 #include "MultilayerPerceptron.h"
 #include "util.h"
@@ -10,18 +12,58 @@ using namespace mc;
 using namespace std;
 using namespace util;
 
+static std::mt19937 gen;
+
+// ------------------------------
+// Set the seed for random number generation
+void util::setSeed(int seed)
+{
+    gen.seed(seed);
+}
+
 // ------------------------------
 // Obtain an integer random number in the range [Low,High]
 int util::randomInt(int Low, int High)
 {
-    return rand() % (High - Low + 1) + Low;
+    std::uniform_int_distribution<int> dis(Low, High);
+    return dis(gen);
 }
 
 // ------------------------------
 // Obtain a real random number in the range [Low,High]
 double util::randomDouble(double Low, double High)
 {
-    return ((double)rand() / RAND_MAX) * (High - Low) + Low;
+    std::uniform_real_distribution<double> dis(Low, High);
+    return dis(gen);
+}
+
+// ------------------------------
+// Generate a vector of unique random integers in the range [min, max]
+std::vector<int> util::integerRandomVectorWithoutRepeating(int min, int max, int howMany)
+{
+    if (min > max || howMany <= 0)
+    {
+        return {};
+    }
+
+    int total = max - min + 1;
+    if (howMany > total)
+    {
+        howMany = total;
+    }
+
+    std::vector<int> numbers(total);
+    std::iota(numbers.begin(), numbers.end(), min);
+
+    for (int i = 0; i < howMany; ++i)
+    {
+        std::uniform_int_distribution<int> dist(i, total - 1);
+        int selectedIndex = dist(gen);
+        std::swap(numbers[i], numbers[selectedIndex]);
+    }
+
+    numbers.resize(howMany);
+    return numbers;
 }
 
 // ------------------------------
@@ -86,14 +128,6 @@ Dataset util::readData(const std::string &fileName)
     return dataset;
 }
 
-// ------------------------------
-// Transform an scalar x by scaling it to a given range [minAllowed, maxAllowed] considering the min
-// and max values of the feature in the dataset (minData and maxData).
-double util::minMaxScaler(double x, double minAllowed, double maxAllowed, double minData, double maxData)
-{
-    x = minAllowed + ((x - minData) * (maxAllowed - minAllowed)) / (maxData - minData);
-    return x;
-}
 
 // ------------------------------
 // Scale the dataset inputs to a given range [minAllowed, maxAllowed] considering the min
@@ -162,23 +196,23 @@ void util::obtainMaxMinValuesFromMatrix(const std::vector<std::vector<double>> &
 
 // ------------------------------
 // Print the dataset
-void util::printDataset(Dataset &dataset, int len)
+void util::printDataset(const Dataset &dataset, int len, std::ostream &os)
 {
     if (len == 0)
         len = dataset.nOfPatterns;
 
     for (int i = 0; i < len; i++)
     {
-        cout << "P" << i << ":" << endl;
+        os << "P" << i << ":" << endl;
         for (int j = 0; j < dataset.nOfInputs; j++)
         {
-            cout << dataset.inputs[i][j] << ",";
+            os << dataset.inputs[i][j] << ",";
         }
 
         for (int j = 0; j < dataset.nOfOutputs; j++)
         {
-            cout << dataset.outputs[i][j] << ",";
+            os << dataset.outputs[i][j] << ",";
         }
-        cout << endl;
+        os << endl;
     }
 }
