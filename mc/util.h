@@ -7,73 +7,117 @@
 
 #ifndef UTIL_H_
 #define UTIL_H_
-#include <cstdlib> // To establish the seed srand() and generate pseudorandom numbers rand()
+
 #include <iostream>
+#include <string>
+#include <vector>
+#include <utility>
+#include <random>
+#include <numeric>
+#include <algorithm>
 
 namespace util
 {
-
-    struct Dataset
+    class Dataset
     {
-        int nOfInputs;    /* Number of inputs */
-        int nOfOutputs;   /* Number of outputs */
-        int nOfPatterns;  /* Number of patterns */
-        double **inputs;  /* Matrix with the inputs of the problem */
-        double **outputs; /* Matrix with the outputs of the problem */
+    public:
+        Dataset(int nOfInputs, int nOfOutputs, int nOfPatterns, std::vector<std::vector<double>> inputs, std::vector<std::vector<double>> outputs)
+        {
+            this->nOfInputs = nOfInputs;
+            this->nOfOutputs = nOfOutputs;
+            this->nOfPatterns = nOfPatterns;
+            this->inputs = inputs;
+            this->outputs = outputs;
+        }
+
+        Dataset() = default;
+
+        int nOfInputs;                            /* Number of inputs */
+        int nOfOutputs;                           /* Number of outputs */
+        int nOfPatterns;                          /* Number of patterns */
+        std::vector<std::vector<double>> inputs;  /* Matrix with the inputs of the problem */
+        std::vector<std::vector<double>> outputs; /* Matrix with the outputs of the problem */
     };
 
-    // Obtain an integer random number in the range [Low,High]
-    int randomInt(int Low, int High);
+    // Obtain an integer random number in the range [low, high]
+    int randomInt(int low, int high);
 
-    // Obtain a real random number in the range [Low,High]
-    double randomDouble(double Low, double High);
-    
+    // Obtain a real random number in the range [low, high]
+    double randomDouble(double low, double high);
+
     // Read a dataset from a file name and return it
-	Dataset* readData(const char *fileName);
-    // Print the dataset
-    void printDataset(Dataset *dataset, int len);
+    Dataset readData(const std::string &fileName);
 
-    static int *integerRandomVectoWithoutRepeating(int min, int max, int howMany)
+    // Print the dataset to the specified output stream
+    void printDataset(const Dataset &dataset, int len = 0, std::ostream &os = std::cout);
+
+    // Generate a vector of unique random integers in the range [min, max]
+    inline std::vector<int> integerRandomVectorWithoutRepeating(int min, int max, int howMany)
     {
-        int total = max - min + 1;
-        int *numbersToBeSelected = new int[total];
-        int *numbersSelected = new int[howMany];
-        // Initialize the list of possible selections
-        for (int i = 0; i < total; i++)
-            numbersToBeSelected[i] = min + i;
-
-        for (int i = 0; i < howMany; i++)
+        if (min > max || howMany <= 0)
         {
-            int selectedNumber = rand() % (total - i);
-            // Store the selected number
-            numbersSelected[i] = numbersToBeSelected[selectedNumber];
-            // We include the last valid number in numbersToBeSelected, in this way
-            // all numbers are valid until total-i-1
-            numbersToBeSelected[selectedNumber] = numbersToBeSelected[total - i - 1];
+            return {};
         }
-        delete[] numbersToBeSelected;
-        return numbersSelected;
+
+        int total = max - min + 1;
+        if (howMany > total)
+        {
+            howMany = total;
+        }
+
+        std::vector<int> numbers(total);
+        std::iota(numbers.begin(), numbers.end(), min);
+
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+
+        for (int i = 0; i < howMany; ++i)
+        {
+            std::uniform_int_distribution<int> dist(i, total - 1);
+            int selectedIndex = dist(gen);
+            std::swap(numbers[i], numbers[selectedIndex]);
+        }
+
+        numbers.resize(howMany);
+        return numbers;
     }
 
-    // Transform an scalar x by scaling it to a given range [minAllowed, maxAllowed] considering the min
-    // and max values of the feature in the dataset (minData and maxData). 
-    double minMaxScaler(double x, double minAllowed, double maxAllowed, double minData, double maxData);
+    // Alias to retain compatibility with legacy typo in function name
+    inline std::vector<int> integerRandomVectoWithoutRepeating(int min, int max, int howMany)
+    {
+        return integerRandomVectorWithoutRepeating(min, max, howMany);
+    }
+
+    // Transform a scalar x by scaling it to a given range [minAllowed, maxAllowed] considering the min
+    // and max values of the feature in the dataset (minData and maxData).
+    double minMaxScaler(double x, double minAllowed, double maxAllowed, double minData, double maxData)
+    {
+        if (maxData == minData)
+        {
+            return minAllowed;
+        }
+        return minAllowed + ((x - minData) * (maxAllowed - minAllowed)) / (maxData - minData);
+    }
 
     // Scale the dataset inputs to a given range [minAllowed, maxAllowed] considering the min
-    // and max values of the feature in the dataset (minData and maxData). 
-    void minMaxScalerDataSetInputs(Dataset *dataset, double minAllowed, double maxAllowed,
-                                   double *minData, double *maxData);
+    // and max values of the feature in the dataset (minData and maxData).
+    void minMaxScalerDataSetInputs(Dataset &dataset, double minAllowed, double maxAllowed,
+                                   const std::vector<double> &minData, const std::vector<double> &maxData);
 
     // Scale the dataset outputs to a given range [minAllowed, maxAllowed] considering the min
-    // and max values of the output in the dataset (minData and maxData). 
-    void minMaxScalerDataSetOutputs(Dataset *dataset, double minAllowed, double maxAllowed,
-                                    double *minData, double *maxData);
+    // and max values of the output in the dataset (minData and maxData).
+    void minMaxScalerDataSetOutputs(Dataset &dataset, double minAllowed, double maxAllowed,
+                                    const std::vector<double> &minData, const std::vector<double> &maxData);
 
     // Extract maximum and minimum values from a matrix of doubles
-    void obtainMaxMinValuesFromMatrix(double **matrix, int nOfRows, int nOfColumns, double *obtainedMaxs, double *obtainedMins);
+    void obtainMaxMinValuesFromMatrix(const std::vector<std::vector<double>> &matrix,
+                                      std::vector<double> &obtainedMins,
+                                      std::vector<double> &obtainedMaxs);
 
+    // Overload returning a pair of vectors: {minValues, maxValues}
+    std::pair<std::vector<double>, std::vector<double>> obtainMaxMinValuesFromMatrix(
+        const std::vector<std::vector<double>> &matrix);
 
-
-};
+} // namespace util
 
 #endif /* UTIL_H_ */

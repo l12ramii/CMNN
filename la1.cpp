@@ -6,82 +6,96 @@
 // Copyright   : Universidad de Córdoba
 //============================================================================
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <iostream>
-#include <ctime>   // To obtain current time time()
-#include <cstdlib> // To establish the seed srand() and generate pseudorandom numbers rand()
-#include <string.h>
-#include <math.h>
+#include <vector>
+#include <string>
+#include <cmath>
+#include <numeric>
+#include <limits>
+#include <cstdlib>
+#include <unistd.h>
 
 #include "mc/MultilayerPerceptron.h"
 #include "mc/util.h"
-#include <cfloat>
-
-using namespace mc;
-using namespace std;
-using namespace util;
 
 int main(int argc, char **argv)
 {
     // Process arguments of the command line
-    bool Tflag = 0, wflag = 0, pflag = 0, tflag = 0, iflag = 0, lflag = 0, hflag = 0, eflag = 0, mflag = 0, nflag = 0;
-    char *Tvalue = NULL, *wvalue = NULL, *tvalue = NULL;
-    int ivalue = 1000, lvalue = 1, hvalue = 5;
-    float evalue = 0.1, mvalue = 0.9;
-    int c;
+    bool wflag = false, pflag = false, nflag = false;
+
+    std::string tvalue;
+    std::string Tvalue;
+    std::string wvalue;
+
+    int ivalue = 1000;
+    int lvalue = 1;
+    int hvalue = 5;
+    double evalue = 0.1;
+    double mvalue = 0.9;
+    int c = 0;
 
     opterr = 0;
 
-    // a: Option that requires an argument
-    // a:: The argument required is optional
-    while ((c = getopt(argc, argv, "t:T::i::l:h::e::m::n::w:p")) != -1)
+    // Command line argument flags:
+    // -t: Training file
+    // -T: Test file
+    // -i: Iterations
+    // -l: Hidden layers
+    // -h: Neurons per hidden layer
+    // -e: Learning rate (eta)
+    // -m: Momentum factor (mu)
+    // -n: Normalize dataset
+    // -w: Weight file
+    // -p: Kaggle prediction mode
+    while ((c = getopt(argc, argv, "t:T:i:l:h:e:m:nw:p")) != -1)
     {
-        // The parameters needed for using the optional prediction mode of Kaggle have been included.
-        // You should add the rest of parameters needed for the lab assignment.
         switch (c)
         {
         case 't':
-            tflag = true;
-            tvalue = optarg;
+            if (optarg) tvalue = optarg;
+            break;
         case 'T':
-            Tflag = true;
-            Tvalue = optarg;
+            if (optarg) Tvalue = optarg;
             break;
         case 'i':
-            iflag = true;
-            ivalue = atoi(optarg);
+            if (optarg) ivalue = std::stoi(optarg);
+            break;
         case 'l':
-            lflag = true;
-            lvalue = atoi(optarg);
+            if (optarg) lvalue = std::stoi(optarg);
+            break;
         case 'h':
-            hflag = true;
-            hvalue = atoi(optarg);
+            if (optarg) hvalue = std::stoi(optarg);
+            break;
         case 'e':
-            eflag = true;
-            evalue = atof(optarg);
+            if (optarg) evalue = std::stod(optarg);
+            break;
         case 'm':
-            mflag = true;
-            mvalue = atof(optarg);
+            if (optarg) mvalue = std::stod(optarg);
+            break;
         case 'n':
             nflag = true;
+            break;
         case 'w':
             wflag = true;
-            wvalue = optarg;
+            if (optarg) wvalue = optarg;
             break;
         case 'p':
             pflag = true;
             break;
         case '?':
-            if (optopt == 't' or optopt == 'l' || optopt == 'w' || optopt == 'p')
-                fprintf(stderr, "The option -%c requires an argument.\n", optopt);
+            if (optopt == 't' || optopt == 'T' || optopt == 'i' || optopt == 'l' ||
+                optopt == 'h' || optopt == 'e' || optopt == 'm' || optopt == 'w')
+            {
+                std::cerr << "The option -" << static_cast<char>(optopt) << " requires an argument.\n";
+            }
             else if (isprint(optopt))
-                fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+            {
+                std::cerr << "Unknown option `-" << static_cast<char>(optopt) << "'.\n";
+            }
             else
-                fprintf(stderr,
-                        "Unknown character `\\x%x'.\n",
-                        optopt);
+            {
+                std::cerr << "Unknown character `\\x" << std::hex << optopt << "'.\n";
+            }
             return EXIT_FAILURE;
         default:
             return EXIT_FAILURE;
@@ -94,59 +108,79 @@ int main(int argc, char **argv)
         // TRAINING AND EVALUATION MODE //
         //////////////////////////////////
 
-        // Multilayer perceptron object
-        MultilayerPerceptron mlp;
+        if (tvalue.empty() || Tvalue.empty())
+        {
+            std::cerr << "Error: Training (-t) and Test (-T) datasets must be specified.\n";
+            return EXIT_FAILURE;
+        }
 
-        // Parameters of the mlp. For example, mlp.eta = value;
+        // Multilayer perceptron object
+        mc::MultilayerPerceptron mlp;
+
+        // Parameters of the mlp
         mlp.eta = evalue;
         mlp.mu = mvalue;
 
         int iterations = ivalue;
 
-        // Read training and test data: call to util::readData(...)
-        Dataset *trainDataset = util::readData(tvalue);
-        Dataset *testDataset = util::readData(Tvalue);  
+        // Read training and test data
+        util::Dataset trainDataset = util::readData(tvalue);
+        util::Dataset testDataset = util::readData(Tvalue);
 
-        // Scale dataset. Use the functions you have in util.h and util.cpp
-        if (nflag)
+        if (trainDataset.nOfPatterns == 0 || testDataset.nOfPatterns == 0)
         {
-            //hay que hacer más cosas, esto no está acabado todavía
-
-            double *minDataTrain, *minDataTest, *maxDataTrain, *maxDataTest;
-            util::obtainMaxMinValuesFromMatrix(trainDataset->inputs, trainDataset->nOfPatterns, trainDataset->nOfInputs, minDataTrain, maxDataTrain);
-            util::obtainMaxMinValuesFromMatrix(testDataset->inputs, testDataset->nOfPatterns, testDataset->nOfInputs, minDataTest, maxDataTest);
-
-            util::minMaxScalerDataSetInputs(trainDataset, -1, 1, minDataTrain, maxDataTrain);
-            util::minMaxScalerDataSetInputs(testDataset, -1, 1, minDataTest, maxDataTest);
+            std::cerr << "Error: Failed to load dataset files properly.\n";
+            return EXIT_FAILURE;
         }
 
-        // Initialize topology vector
-        int layers = lvalue;
-        int *topology = (int *)malloc(layers * sizeof(int));
+        // Scale dataset if requested
+        if (nflag)
+        {
+            std::vector<double> minInputsTrain, maxInputsTrain;
+            std::vector<double> minInputsTest, maxInputsTest;
+            std::vector<double> minOutputsTrain, maxOutputsTrain;
+            std::vector<double> minOutputsTest, maxOutputsTest;
 
-        for (int i = 0; i < layers; i++)
+            util::obtainMaxMinValuesFromMatrix(trainDataset.inputs, minInputsTrain, maxInputsTrain);
+            util::obtainMaxMinValuesFromMatrix(testDataset.inputs, minInputsTest, maxInputsTest);
+            util::obtainMaxMinValuesFromMatrix(trainDataset.outputs, minOutputsTrain, maxOutputsTrain);
+            util::obtainMaxMinValuesFromMatrix(testDataset.outputs, minOutputsTest, maxOutputsTest);
+
+            util::minMaxScalerDataSetInputs(trainDataset, -1.0, 1.0, minInputsTrain, maxInputsTrain);
+            util::minMaxScalerDataSetInputs(testDataset, -1.0, 1.0, minInputsTest, maxInputsTest);
+            util::minMaxScalerDataSetOutputs(trainDataset, 0.0, 1.0, minOutputsTrain, maxOutputsTrain);
+            util::minMaxScalerDataSetOutputs(testDataset, 0.0, 1.0, minOutputsTest, maxOutputsTest);
+        }
+
+        // Initialize topology vector: input layer, hidden layers, output layer
+        int hiddenLayers = lvalue;
+        std::vector<int> topology(hiddenLayers + 2);
+        topology.front() = trainDataset.nOfInputs;
+        for (int i = 1; i <= hiddenLayers; ++i)
         {
             topology[i] = hvalue;
         }
+        topology.back() = trainDataset.nOfOutputs;
 
         // Initialize the network using the topology vector
-        mlp.initialize(layers + 2, topology);
+        mlp.initialize(hiddenLayers + 2, topology);
 
         // Seed for random numbers
-        int seeds[] = {1, 2, 3, 4, 5};
-        double *testErrors = new double[5];
-        double *trainErrors = new double[5];
-        double bestTestError = DBL_MAX;
-        for (int i = 0; i < 5; i++)
-        {
-            cout << "**********" << endl;
-            cout << "SEED " << seeds[i] << endl;
-            cout << "**********" << endl;
-            srand(seeds[i]);
-            mlp.runOnlineBackPropagation(trainDataset, testDataset, iterations, &(trainErrors[i]), &(testErrors[i]));
-            cout << "We end!! => Final test error: " << testErrors[i] << endl;
+        const std::vector<int> seeds = {1, 2, 3, 4, 5};
+        std::vector<double> testErrors(seeds.size(), 0.0);
+        std::vector<double> trainErrors(seeds.size(), 0.0);
+        double bestTestError = std::numeric_limits<double>::max();
 
-            // We save the weights every time we find a better model
+        for (size_t i = 0; i < seeds.size(); ++i)
+        {
+            std::cout << "**********\n";
+            std::cout << "SEED " << seeds[i] << "\n";
+            std::cout << "**********\n";
+            std::srand(seeds[i]);
+            mlp.runOnlineBackPropagation(trainDataset, testDataset, iterations, trainErrors[i], testErrors[i]);
+            std::cout << "We end!! => Final test error: " << testErrors[i] << "\n";
+
+            // Save the weights every time a better model is found
             if (wflag && testErrors[i] <= bestTestError)
             {
                 mlp.saveWeights(wvalue);
@@ -154,43 +188,50 @@ int main(int argc, char **argv)
             }
         }
 
-        cout << "WE HAVE FINISHED WITH ALL THE SEEDS" << endl;
+        std::cout << "WE HAVE FINISHED WITH ALL THE SEEDS\n";
 
-        double averageTestError = 0, stdTestError = 0;
-        double averageTrainError = 0, stdTrainError = 0;
+        // Calculate training and test error statistics (Mean +- SD)
+        double averageTrainError = std::accumulate(trainErrors.begin(), trainErrors.end(), 0.0) / trainErrors.size();
+        double averageTestError = std::accumulate(testErrors.begin(), testErrors.end(), 0.0) / testErrors.size();
 
-        // Obtain training and test averages and standard deviations
+        double sumSqTrain = 0.0;
+        double sumSqTest = 0.0;
+        for (size_t i = 0; i < seeds.size(); ++i)
+        {
+            sumSqTrain += (trainErrors[i] - averageTrainError) * (trainErrors[i] - averageTrainError);
+            sumSqTest += (testErrors[i] - averageTestError) * (testErrors[i] - averageTestError);
+        }
+        double stdTrainError = std::sqrt(sumSqTrain / trainErrors.size());
+        double stdTestError = std::sqrt(sumSqTest / testErrors.size());
 
-        cout << "FINAL REPORT" << endl;
-        cout << "************" << endl;
-        cout << "Train error (Mean +- SD): " << averageTrainError << " +- " << stdTrainError << endl;
-        cout << "Test error (Mean +- SD):          " << averageTestError << " +- " << stdTestError << endl;
+        std::cout << "\nFINAL REPORT\n";
+        std::cout << "************\n";
+        std::cout << "Train error (Mean +- SD): " << averageTrainError << " +- " << stdTrainError << "\n";
+        std::cout << "Test error (Mean +- SD):          " << averageTestError << " +- " << stdTestError << "\n";
+
         return EXIT_SUCCESS;
     }
     else
     {
-
         //////////////////////////////
         // PREDICTION MODE (KAGGLE) //
         //////////////////////////////
 
-        // Multilayer perceptron object
-        MultilayerPerceptron mlp;
+        mc::MultilayerPerceptron mlp;
 
-        // Initializing the network with the topology vector
+        // Initialize the network with weights from file
         if (!wflag || !mlp.readWeights(wvalue))
         {
-            cerr << "Error while reading weights, we can not continue" << endl;
-            exit(-1);
+            std::cerr << "Error while reading weights, we cannot continue\n";
+            return EXIT_FAILURE;
         }
 
-        // Reading training and test data: call to util::readData(...)
-        Dataset *testDataset;
-        testDataset = readData(Tvalue);
-        if (testDataset == NULL)
+        // Reading test data
+        util::Dataset testDataset = util::readData(Tvalue);
+        if (testDataset.nOfPatterns == 0)
         {
-            cerr << "The test file is not valid, we can not continue" << endl;
-            exit(-1);
+            std::cerr << "The test file is not valid, we cannot continue\n";
+            return EXIT_FAILURE;
         }
 
         mlp.predict(testDataset);
