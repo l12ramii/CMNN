@@ -26,10 +26,7 @@ MultilayerPerceptron::MultilayerPerceptron()
 }
 */
 
-// ------------------------------
-// Allocate memory for the data structures
-// nl is the number of layers and npl is a vector containing the number of neurons in every layer
-// Give values to Layer* layers
+
 MultilayerPerceptron::MultilayerPerceptron(int nl, const std::vector<int> &npl)
 {
 	// Asignar número de capas
@@ -75,8 +72,7 @@ void MultilayerPerceptron::freeMemory() {
 }
 */
 
-// ------------------------------
-// Feel all the weights (w) with random numbers between -1 and +1
+
 void MultilayerPerceptron::randomWeights()
 {
 	for (auto &layer : this->layers)
@@ -91,10 +87,12 @@ void MultilayerPerceptron::randomWeights()
 	}
 }
 
-// ------------------------------
-// Feed the input neurons of the network with a vector passed as an argument
+
 void MultilayerPerceptron::feedInputs(const std::vector<double> &input)
 {
+	for(auto &neuron : this->layers.at(0).neurons){
+
+	}
 }
 
 // ------------------------------

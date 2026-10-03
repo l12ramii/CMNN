@@ -1,7 +1,8 @@
-/*********************************************************************
- * File  : MultilayerPerceptron.h
- * Date  : 2020
- *********************************************************************/
+/**
+ * @file MultilayerPerceptron.h
+ * @brief Definition of the MultilayerPerceptron class, Layer class, and Neuron class for neural network models.
+ * @date 2020
+ */
 
 #ifndef MULTILAYERPERCEPTRON_H_
 #define MULTILAYERPERCEPTRON_H_
@@ -13,33 +14,60 @@
 
 #include "util.h"
 
+/**
+ * @namespace mc
+ * @brief Namespace containing the Multilayer Perceptron neural network model components.
+ */
 namespace mc
 {
-
-    // Suggested structures
-    // ---------------------
+    /**
+     * @class Neuron
+     * @brief Represents an individual neuron within a neural network layer.
+     *
+     * Holds activation output, local gradient (delta), synaptic weights, and change buffers for training.
+     */
     class Neuron
     {
-        public: 
-        double out{0.0};                /* Output produced by the neuron (out_j^h) */
-        double delta{0.0};              /* Derivative of the output produced by the neuron (delta_j^h) */
-        std::vector<double> w;          /* Input weight vector (w_{ji}^h) */
-        std::vector<double> deltaW;     /* Change to be applied to every weight (\Delta_{ji}^h (t)) */
-        std::vector<double> lastDeltaW; /* Last change applied to every weight (\Delta_{ji}^h (t-1)) */
-        std::vector<double> wCopy;      /* Copy of the input weights */
+    public:
+        /** Output produced by the neuron (\f$out_j^h\f$) */
+        double out{0.0};
+        /** Derivative / local error gradient produced by the neuron (\f$\delta_j^h\f$) */
+        double delta{0.0};
+        /** Input weight vector (\f$w_{ji}^h\f$), where index 0 is the bias weight */
+        std::vector<double> w;
+        /** Change to be applied to every weight in current step (\f$\Delta w_{ji}^h(t)\f$) */
+        std::vector<double> deltaW;
+        /** Last change applied to every weight (\f$\Delta w_{ji}^h(t-1)\f$) for momentum */
+        std::vector<double> lastDeltaW;
+        /** Copy of the input weights for model checkpointing / restoring */
+        std::vector<double> wCopy;
 
+        /**
+         * @brief Default constructor for Neuron.
+         */
         Neuron() = default;
-
     };
 
+    /**
+     * @class Layer
+     * @brief Represents a layer of neurons in the multilayer perceptron.
+     */
     class Layer
     {
     public:
-        int nOfNeurons;              /* Number of neurons in the layer */
-        std::vector<Neuron> neurons; /* Vector with the neurons of the layer */
+        int nOfNeurons;              /**< Number of neurons contained in this layer */
+        std::vector<Neuron> neurons; /**< Vector containing the neurons of the layer */
 
+        /**
+         * @brief Default constructor for Layer.
+         */
         Layer() = default;
 
+        /**
+         * @brief Constructs a Layer with a given number of neurons.
+         *
+         * @param[in] nOfNeurons Number of neurons to initialize in this layer.
+         */
         Layer(int nOfNeurons)
         {
             this->nOfNeurons = nOfNeurons;
@@ -47,81 +75,168 @@ namespace mc
         }
     };
 
+    /**
+     * @class MultilayerPerceptron
+     * @brief Implementation of a Multilayer Perceptron (MLP) artificial neural network.
+     *
+     * Supports feedforward propagation, error backpropagation, online and offline training, momentum,
+     * model evaluation (MSE), and weight serialization.
+     */
     class MultilayerPerceptron
     {
     private:
-        int nOfLayers{0};          /* Total number of layers in the network */
-        std::vector<Layer> layers; /* Vector containing every layer */
+        /** Total number of layers irandomWeightsn the network (input + hidden + output) */
+        int nOfLayers{0};
+        /** Vector containing every layer in sequence from input to output */
+        std::vector<Layer> layers;
 
-        // Fill all the weights (w) with random numbers between -1 and +1
+        /**
+         * @brief Initializes all network weights with random values uniformly sampled in [-1.0, 1.0].
+         */
         void randomWeights();
 
-        // Feed the input neurons of the network with a vector passed as an argument
+        /**
+         * @brief Feeds the input pattern into the neurons of the input layer.
+         *
+         * @param[in] input Vector of input features for a single pattern.
+         */
         void feedInputs(const std::vector<double> &input);
 
-        // Get the outputs predicted by the network (out vector of the output layer) and save them in the vector passed as an argument
+        /**
+         * @brief Extracts the outputs predicted by the network's output layer.
+         *
+         * @param[out] output Vector to store the output activations of the output layer.
+         */
         void getOutputs(std::vector<double> &output);
 
-        // Make a copy of all the weights (copy w into wCopy)
+        /**
+         * @brief Saves a backup copy of all current synaptic weights into the wCopy vectors.
+         */
         void copyWeights();
 
-        // Restore a copy of all the weights (copy wCopy into w)
+        /**
+         * @brief Restores synaptic weights from the wCopy backup vectors back into the w vectors.
+         */
         void restoreWeights();
 
-        // Calculate and propagate the outputs of the neurons, from the first layer until the last one -->-->
+        /**
+         * @brief Computes and propagates outputs of neurons forward from the first layer to the last layer.
+         */
         void forwardPropagate();
 
-        // Obtain the output error (MSE) of the out vector of the output layer wrt a target vector and return it
+        /**
+         * @brief Calculates the Mean Squared Error (MSE) of the output layer activations with respect to target values.
+         *
+         * @param[in] target Vector of target output values.
+         * @return Mean Squared Error (MSE) for the current pattern.
+         */
         double obtainError(const std::vector<double> &target);
 
-        // Backpropagate the output error wrt a vector passed as an argument, from the last layer to the first one <--<--
+        /**
+         * @brief Backpropagates the output error gradients from the output layer to the first hidden layer.
+         *
+         * @param[in] target Desired target output values for the current pattern.
+         */
         void backpropagateError(const std::vector<double> &target);
 
-        // Accumulate the changes produced by one pattern and save them in deltaW
+        /**
+         * @brief Accumulates the weight updates produced by one pattern and saves them in deltaW.
+         */
         void accumulateChange();
 
-        // Update the network weights, from the first layer to the last one
+        /**
+         * @brief Updates network weights by applying the accumulated deltaW and momentum term.
+         */
         void weightAdjustment();
 
-        // Print the network, i.e. all the weight matrices
+        /**
+         * @brief Prints the network architecture and all layer weight matrices to standard output.
+         */
         void printNetwork();
 
-        // Perform an epoch: forward propagate the inputs, backpropagate the error and adjust the weights
-        // input is the input vector of the pattern and target is the desired output vector of the pattern
+        /**
+         * @brief Performs a single online training epoch step for one input-target pattern pair.
+         *
+         * Feeds inputs, computes forward propagation, backpropagates error, and adjusts weights.
+         *
+         * @param[in] input Input feature vector for the pattern.
+         * @param[in] target Desired target output vector for the pattern.
+         */
         void performEpochOnline(const std::vector<double> &input, const std::vector<double> &target);
 
     public:
-        // Values of the parameters (they are public and can be updated from outside)
-        double eta{0.1}; // Learning rate
-        double mu{0.9};  // Momentum factor
+        double eta{0.1}; /**< Learning rate parameter (\f$\eta\f$) */
+        double mu{0.9};  /**< Momentum factor parameter (\f$\mu\f$) */
 
-        // Constructor: Default values for all the parameters
+        /**
+         * @brief Default constructor for MultilayerPerceptron.
+         */
         MultilayerPerceptron() = default;
 
+        /**
+         * @brief Constructs an MLP network with a specified number of layers and layer sizes.
+         *
+         * @param[in] nl Number of layers (including input, hidden, and output layers).
+         * @param[in] npl Vector specifying the number of neurons in each layer.
+         */
         MultilayerPerceptron(int nl, const std::vector<int> &npl);
 
-        // Destructor (Rule of Zero applies; defaulted for clean interface)
+        /**
+         * @brief Default destructor for MultilayerPerceptron.
+         */
         ~MultilayerPerceptron() = default;
 
-        // Test the network with a dataset and return the MSE
+        /**
+         * @brief Evaluates the network on a given dataset and returns the Mean Squared Error (MSE).
+         *
+         * @param[in] dataset The dataset containing input patterns and expected outputs.
+         * @return Mean Squared Error (MSE) across all patterns in the dataset.
+         */
         double test(const util::Dataset &dataset);
 
-        // Obtain the predicted outputs for a dataset (prints in Kaggle format)
+        /**
+         * @brief Obtains and prints the predicted outputs for a dataset in Kaggle CSV format (Id,Predicted).
+         *
+         * @param[in] testDataset The dataset on which to perform inference.
+         */
         void predict(const util::Dataset &testDataset);
 
-        // Perform an online training for a specific dataset
+        /**
+         * @brief Performs one online training epoch over the entire training dataset.
+         *
+         * @param[in] trainDataset Dataset containing training patterns.
+         */
         void trainOnline(const util::Dataset &trainDataset);
 
-        // Run the training algorithm for a given number of epochs, using trainDataset.
-        // Once finished, check the performance of the network on testDataset.
-        // Both training and test MSEs are stored in errorTrain and errorTest.
+        /**
+         * @brief Executes the online backpropagation training algorithm for up to maxiter iterations.
+         *
+         * Monitors training performance with early stopping, keeps track of the best weights,
+         * and reports training and test errors.
+         *
+         * @param[in] trainDataset Training dataset.
+         * @param[in] testDataset Test dataset used for performance evaluation.
+         * @param[in] maxiter Maximum number of training epochs/iterations.
+         * @param[out] errorTrain Reference to store the resulting minimum training MSE.
+         * @param[out] errorTest Reference to store the resulting test MSE evaluated on testDataset.
+         */
         void runOnlineBackPropagation(const util::Dataset &trainDataset, const util::Dataset &testDataset,
                                       int maxiter, double &errorTrain, double &errorTest);
 
-        // Optional Kaggle: Save the model weights in a text file
+        /**
+         * @brief Saves the network architecture and model weights to a text file.
+         *
+         * @param[in] fileName Path to the file where weights should be saved.
+         * @return true if weights were successfully written, false otherwise.
+         */
         bool saveWeights(const std::string &fileName);
 
-        // Optional Kaggle: Load the model weights from a text file
+        /**
+         * @brief Loads the network architecture and model weights from a text file.
+         *
+         * @param[in] fileName Path to the file from which weights should be read.
+         * @return true if weights were successfully read and loaded, false otherwise.
+         */
         bool readWeights(const std::string &fileName);
     };
 
