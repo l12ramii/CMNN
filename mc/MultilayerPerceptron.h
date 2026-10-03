@@ -85,7 +85,7 @@ namespace mc
     class MultilayerPerceptron
     {
     private:
-        /** Total number of layers irandomWeightsn the network (input + hidden + output) */
+        /** Total number of layers in the network (input + hidden + output) */
         int nOfLayers{0};
         /** Vector containing every layer in sequence from input to output */
         std::vector<Layer> layers;

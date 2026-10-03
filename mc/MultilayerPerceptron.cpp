@@ -26,7 +26,6 @@ MultilayerPerceptron::MultilayerPerceptron()
 }
 */
 
-
 MultilayerPerceptron::MultilayerPerceptron(int nl, const std::vector<int> &npl)
 {
 	// Asignar número de capas
@@ -72,7 +71,6 @@ void MultilayerPerceptron::freeMemory() {
 }
 */
 
-
 void MultilayerPerceptron::randomWeights()
 {
 	for (auto &layer : this->layers)
@@ -87,47 +85,89 @@ void MultilayerPerceptron::randomWeights()
 	}
 }
 
+// ------------------------------
 
 void MultilayerPerceptron::feedInputs(const std::vector<double> &input)
 {
-	for(auto &neuron : this->layers.at(0).neurons){
-
+	for (size_t i = 0; i < input.size(); i++)
+	{
+		this->layers.front().neurons[i].out = input[i];
 	}
 }
 
 // ------------------------------
-// Get the outputs predicted by the network (out vector the output layer) and save them in the vector passed as an argument
+
 void MultilayerPerceptron::getOutputs(std::vector<double> &output)
 {
+	for (size_t i = 0; i < output.size(); i++)
+	{
+		output[i] = this->layers.back().neurons[i].out;
+	}
 }
 
 // ------------------------------
-// Make a copy of all the weights (copy w in wCopy)
+
 void MultilayerPerceptron::copyWeights()
 {
+	for (auto &layer : this->layers)
+	{
+		for (auto &neuron : layer.neurons)
+		{
+			neuron.wCopy = neuron.w;
+		}
+	}
 }
 
 // ------------------------------
-// Restore a copy of all the weights (copy wCopy in w)
+
 void MultilayerPerceptron::restoreWeights()
 {
+	for (auto &layer : this->layers)
+	{
+		for (auto &neuron : layer.neurons)
+		{
+			neuron.w = neuron.wCopy;
+		}
+	}
 }
 
 // ------------------------------
-// Calculate and propagate the outputs of the neurons, from the first layer until the last one -->-->
+
 void MultilayerPerceptron::forwardPropagate()
 {
+	// Para cada capa h a partir de la primera
+	for (size_t h = 1; h < this->nOfLayers; h++)
+	{
+		// Para cada neurona j de la capa i
+		for (size_t j = 1; j < this->layers[h].nOfNeurons; j++)
+		{
+			// Calcular el net_h_j
+			double net_h_j = this->layers[h].neurons[j].w[0];
+			for (size_t i = 1; i < this->layers[h - 1].nOfNeurons; i++)
+			{
+				net_h_j += this->layers[h].neurons[j].w[i] * this->layers[h - 1].neurons[i].out;
+			}
+			// Asignar la salida con sigmoide(net_h_j)
+			this->layers[h].neurons[j].out = util::sigmoid(net_h_j);
+		}
+	}
 }
 
 // ------------------------------
-// Obtain the output error (MSE) of the out vector of the output layer wrt a target vector and return it
+
 double MultilayerPerceptron::obtainError(const std::vector<double> &target)
 {
-	return -1;
+	double error = 0.0;
+	for (size_t i = 0; i < this->layers.back().nOfNeurons; i++)
+	{
+		error += std::pow(target[i] - this->layers.back().neurons[i].out, 2);
+	}
+
+	return error;
 }
 
 // ------------------------------
-// Backpropagate the output error wrt a vector passed as an argument, from the last layer to the first one <--<--
+
 void MultilayerPerceptron::backpropagateError(const std::vector<double> &target)
 {
 }
@@ -136,12 +176,42 @@ void MultilayerPerceptron::backpropagateError(const std::vector<double> &target)
 // Accumulate the changes produced by one pattern and save them in deltaW
 void MultilayerPerceptron::accumulateChange()
 {
+	// Para cada capa h
+	for (size_t h = 1; h < this->nOfLayers; h++)
+	{
+		// Para cada neurona de la capa h
+		for (size_t j = 1; j < this->layers[h].nOfNeurons; j++)
+		{
+			// Para cada neurona de la capa h - 1
+			for (size_t i = 1; i < this->layers[h - 1].nOfNeurons; i++)
+			{
+				this->layers[h].neurons[j].deltaW[i] = this->layers[h].neurons[j].deltaW[i] + this->layers[h].neurons[j].delta * this->layers[h - 1].neurons[i].out;
+			}
+			// Sesgo
+			this->layers[h].neurons[j].deltaW[0] = this->layers[h].neurons[j].deltaW[0] + this->layers[h].neurons[j].delta;
+		}
+	}
 }
 
 // ------------------------------
 // Update the network weights, from the first layer to the last one
 void MultilayerPerceptron::weightAdjustment()
 {
+	// Para cada capa h
+	for (size_t h = 1; h < this->nOfLayers; h++)
+	{
+		// Para cada neurona de la capa h
+		for (size_t j = 1; j < this->layers[h].nOfNeurons; j++)
+		{
+			// Para cada neurona de la capa h - 1
+			for (size_t i = 0; i < this->layers[h - 1].nOfNeurons; i++)
+			{
+				this->layers[h].neurons[j].w[i] = this->layers[h].neurons[j].w[i] - this->eta * this->layers[h].neurons[j].deltaW[i] - this->mu * this->eta * this->layers[h].neurons[j].lastDeltaW[i];
+			}
+			// Sesgo
+			this->layers[h].neurons[j].w[0] = this->layers[h].neurons[j].w[0] - this->eta * this->layers[h].neurons[j].deltaW[0] - this->mu * this->eta * this->layers[h].neurons[j].lastDeltaW[0];
+		}
+	}
 }
 
 // ------------------------------

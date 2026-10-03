@@ -15,6 +15,7 @@
 #include <random>
 #include <numeric>
 #include <algorithm>
+#include <cmath>
 
 /**
  * @namespace util
@@ -31,7 +32,7 @@ namespace util
     public:
         /**
          * @brief Constructs a Dataset with specified dimensions and data matrices.
-         * 
+         *
          * @param[in] nOfInputs Number of input features per pattern.
          * @param[in] nOfOutputs Number of output targets per pattern.
          * @param[in] nOfPatterns Total number of patterns (samples) in the dataset.
@@ -52,23 +53,23 @@ namespace util
          */
         Dataset() = default;
 
-        int nOfInputs{0};                            /**< Number of inputs per pattern */
-        int nOfOutputs{0};                           /**< Number of outputs per pattern */
-        int nOfPatterns{0};                          /**< Total number of patterns in the dataset */
-        std::vector<std::vector<double>> inputs;     /**< Matrix with the inputs of the problem [pattern_index][input_index] */
-        std::vector<std::vector<double>> outputs;    /**< Matrix with the outputs of the problem [pattern_index][output_index] */
+        int nOfInputs{0};                         /**< Number of inputs per pattern */
+        int nOfOutputs{0};                        /**< Number of outputs per pattern */
+        int nOfPatterns{0};                       /**< Total number of patterns in the dataset */
+        std::vector<std::vector<double>> inputs;  /**< Matrix with the inputs of the problem [pattern_index][input_index] */
+        std::vector<std::vector<double>> outputs; /**< Matrix with the outputs of the problem [pattern_index][output_index] */
     };
 
     /**
      * @brief Sets the seed for the pseudo-random number generator.
-     * 
+     *
      * @param[in] seed Integer seed value for the random number generator.
      */
     void setSeed(int seed);
 
     /**
      * @brief Obtains a uniformly distributed random integer in the range [low, high].
-     * 
+     *
      * @param[in] low Minimum integer value (inclusive).
      * @param[in] high Maximum integer value (inclusive).
      * @return A random integer in the interval [low, high].
@@ -77,7 +78,7 @@ namespace util
 
     /**
      * @brief Obtains a uniformly distributed random real number in the range [low, high].
-     * 
+     *
      * @param[in] low Minimum real value (inclusive).
      * @param[in] high Maximum real value (inclusive).
      * @return A random double in the interval [low, high].
@@ -86,10 +87,10 @@ namespace util
 
     /**
      * @brief Reads a dataset from a formatted text file.
-     * 
+     *
      * The file begins with a header line containing: <nOfInputs> <nOfOutputs> <nOfPatterns>,
      * followed by lines containing inputs and target outputs for each pattern.
-     * 
+     *
      * @param[in] fileName Path to the dataset file to be read.
      * @return The parsed Dataset object containing inputs and outputs.
      * @throw std::runtime_error If the file cannot be opened or if an error occurs while reading.
@@ -98,7 +99,7 @@ namespace util
 
     /**
      * @brief Prints the dataset to the specified output stream.
-     * 
+     *
      * @param[in] dataset The Dataset to print.
      * @param[in] len Number of patterns to print (default 0 means all patterns).
      * @param[in,out] os Output stream to write to (defaults to std::cout).
@@ -107,7 +108,7 @@ namespace util
 
     /**
      * @brief Generates a vector of unique random integers in the range [min, max] without repetition.
-     * 
+     *
      * @param[in] min Minimum integer value (inclusive).
      * @param[in] max Maximum integer value (inclusive).
      * @param[in] howMany Number of unique integers to sample.
@@ -117,9 +118,9 @@ namespace util
 
     /**
      * @brief Alias to retain compatibility with legacy typo in function name.
-     * 
+     *
      * Calls integerRandomVectorWithoutRepeating(min, max, howMany).
-     * 
+     *
      * @param[in] min Minimum integer value (inclusive).
      * @param[in] max Maximum integer value (inclusive).
      * @param[in] howMany Number of unique integers to sample.
@@ -132,11 +133,11 @@ namespace util
 
     /**
      * @brief Transforms a scalar x by scaling it to a given range [minAllowed, maxAllowed].
-     * 
+     *
      * Considers the min and max values of the feature in the dataset (minData and maxData).
      * Formula: minAllowed + ((x - minData) * (maxAllowed - minAllowed)) / (maxData - minData)
      * If maxData equals minData, returns minAllowed.
-     * 
+     *
      * @param[in] x The scalar value to scale.
      * @param[in] minAllowed Lower bound of the target range.
      * @param[in] maxAllowed Upper bound of the target range.
@@ -155,9 +156,9 @@ namespace util
 
     /**
      * @brief Scales the dataset inputs to a given range [minAllowed, maxAllowed] in-place.
-     * 
+     *
      * Considers the min and max values of each feature in the dataset (minData and maxData).
-     * 
+     *
      * @param[in,out] dataset Dataset whose inputs will be scaled in-place.
      * @param[in] minAllowed Lower bound of the target range.
      * @param[in] maxAllowed Upper bound of the target range.
@@ -169,9 +170,9 @@ namespace util
 
     /**
      * @brief Scales the dataset outputs to a given range [minAllowed, maxAllowed] in-place.
-     * 
+     *
      * Considers the min and max values of each output in the dataset (minData and maxData).
-     * 
+     *
      * @param[in,out] dataset Dataset whose outputs will be scaled in-place.
      * @param[in] minAllowed Lower bound of the target range.
      * @param[in] maxAllowed Upper bound of the target range.
@@ -183,7 +184,7 @@ namespace util
 
     /**
      * @brief Extracts column-wise maximum and minimum values from a 2D matrix of doubles.
-     * 
+     *
      * @param[in] matrix 2D matrix of values (rows x columns).
      * @param[out] obtainedMins Vector filled with the minimum value found in each column.
      * @param[out] obtainedMaxs Vector filled with the maximum value found in each column.
@@ -195,9 +196,9 @@ namespace util
 
     /**
      * @brief Extracts column-wise maximum and minimum values from a 2D matrix of doubles.
-     * 
+     *
      * Overload returning a pair of vectors: {minValues, maxValues}.
-     * 
+     *
      * @param[in] matrix 2D matrix of values (rows x columns).
      * @return std::pair<std::vector<double>, std::vector<double>> Pair containing {minValues, maxValues} for each column.
      * @throw std::runtime_error If the matrix is empty or has empty rows.
@@ -205,6 +206,20 @@ namespace util
     std::pair<std::vector<double>, std::vector<double>> obtainMaxMinValuesFromMatrix(
         const std::vector<std::vector<double>> &matrix);
 
+    /**
+     * @brief Computes the standard logistic sigmoid activation function.
+     *
+     * Formula: \f$\sigma(x) = \frac{1}{1 + e^{-x}}\f$
+     * Maps any real-valued net input into the range (0, 1).
+     *
+     * @param[in] x Net input value (activation potential).
+     * @return Output activation value in the range (0, 1).
+     */
+    inline double sigmoid(double x)
+    {
+        return 1.0 / (1.0 + std::exp(-x));
+    }
+    
 } // namespace util
 
 #endif /* UTIL_H_ */
