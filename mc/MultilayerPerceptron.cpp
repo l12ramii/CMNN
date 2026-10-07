@@ -173,6 +173,29 @@ double MultilayerPerceptron::obtainError(const std::vector<double> &target)
 
 void MultilayerPerceptron::backpropagateError(const std::vector<double> &target)
 {
+	// Para cada neurona de la capa salida, calcular delta
+	for (int j = 0; j < this->layers.back().nOfNeurons; j++)
+	{
+		mc::Neuron &neuron = this->layers.back().neurons[j];
+		neuron.delta = -(target[j] - neuron.out) * neuron.out * (1.0 - neuron.out);
+	}
+
+	// Para cada capa desde el final hasta el principio
+	for (auto h = this->nOfLayers - 2; h > 0; h--)
+	{
+		// Para cada neurona de la capa h
+		for (int j = 0; j < this->layers[h].nOfNeurons; j++)
+		{
+			mc::Neuron &neuron = this->layers[h].neurons[j];
+			double aux = 0.0;
+			// Para cada neurona de la capa h + 1 conectada con j
+			for (int i = 0; i < this->layers[h + 1].nOfNeurons; i++)
+			{
+				aux += this->layers[h + 1].neurons[i].w[j + 1] * this->layers[h + 1].neurons[i].delta;
+			}
+			neuron.delta = aux * neuron.out * (1 - neuron.out);
+		}
+	}
 }
 
 // ------------------------------
@@ -242,14 +265,30 @@ void MultilayerPerceptron::printNetwork()
 }
 
 // ------------------------------
-// Perform an epoch: forward propagate the inputs, backpropagate the error and adjust the weights
-// input is the input vector of the pattern and target is the desired output vector of the pattern
+
 void MultilayerPerceptron::performEpochOnline(const std::vector<double> &input, const std::vector<double> &target)
 {
+	// Para cada capa
+	for (int h = 1; h < this->nOfLayers; h++)
+	{
+		// Para cada neurona
+		for (int j = 0; j < this->layers[h].nOfNeurons; j++)
+		{
+			// Poner deltaW a cero
+			auto &deltaW = this->layers[h].neurons[j].deltaW;
+			std::fill(deltaW.begin(), deltaW.end(), 0.0);
+		}
+	}
+
+	this->feedInputs(input);
+	this->forwardPropagate();
+	this->backpropagateError(target);
+	this->accumulateChange();
+	this->weightAdjustment();
 }
 
 // ------------------------------
-// Perform an online training for a specific trainDataset
+
 void MultilayerPerceptron::trainOnline(const util::Dataset &trainDataset)
 {
 	for (size_t i = 0; i < trainDataset.nOfPatterns; i++)
@@ -259,10 +298,23 @@ void MultilayerPerceptron::trainOnline(const util::Dataset &trainDataset)
 }
 
 // ------------------------------
-// Test the network with a dataset and return the MSE
+
 double MultilayerPerceptron::test(const util::Dataset &testDataset)
 {
-	return -1.0;
+
+	int numSalidas = this->layers.back().nOfNeurons;
+	std::vector<double> obtained = std::vector<double>(numSalidas);
+
+	double mse = 0.0;
+	for (size_t i = 0; i < testDataset.nOfPatterns; i++)
+	{
+
+		this->feedInputs(testDataset.inputs[i]);
+		this->forwardPropagate();
+		this->getOutputs(obtained);
+		mse += this->obtainError(testDataset.outputs[i]);
+	}
+	return mse / testDataset.nOfPatterns;
 }
 
 // Optional - KAGGLE
@@ -270,7 +322,7 @@ double MultilayerPerceptron::test(const util::Dataset &testDataset)
 // Your have to use the format from Kaggle: two columns (Id y predictied)
 void MultilayerPerceptron::predict(const util::Dataset &pDatosTest)
 {
-	int numSalidas = layers[nOfLayers - 1].nOfNeurons;
+	int numSalidas = this->layers.back().nOfNeurons;
 	std::vector<double> obtained = std::vector<double>(numSalidas);
 
 	cout << "Id,Predicted" << endl;
@@ -278,9 +330,9 @@ void MultilayerPerceptron::predict(const util::Dataset &pDatosTest)
 	for (size_t i = 0; i < pDatosTest.nOfPatterns; i++)
 	{
 
-		feedInputs(pDatosTest.inputs[i]);
-		forwardPropagate();
-		getOutputs(obtained);
+		this->feedInputs(pDatosTest.inputs[i]);
+		this->forwardPropagate();
+		this->getOutputs(obtained);
 
 		cout << i;
 
