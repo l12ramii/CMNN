@@ -13,6 +13,7 @@
 #include <numeric>
 #include <limits>
 #include <cstdlib>
+#include <fstream>
 
 #include "mc/MultilayerPerceptron.h"
 #include "mc/util.h"
@@ -23,11 +24,12 @@ int main(int argc, char **argv)
     std::vector<std::string> args(argv, argv + argc);
 
     // Process arguments of the command line
-    bool wflag = false, pflag = false, nflag = false;
+    bool wflag = false, pflag = false, nflag = false, sflag = false;
 
     std::string tvalue;
     std::string Tvalue;
     std::string wvalue;
+    std::string svalue;
 
     int ivalue = 1000;
     int lvalue = 1;
@@ -46,6 +48,7 @@ int main(int argc, char **argv)
     // -n: Normalize dataset
     // -w: Weight file
     // -p: Kaggle prediction mode
+    // -s / -c / -f / -o / --csv: CSV output file for final metrics
     for (size_t i = 1; i < args.size(); ++i)
     {
         const std::string &arg = args[i];
@@ -155,6 +158,19 @@ int main(int argc, char **argv)
         {
             pflag = true;
         }
+        else if (arg == "-s" || arg == "-c" || arg == "-f" || arg == "-o" || arg == "--csv" || arg == "-csv")
+        {
+            sflag = true;
+            if (i + 1 < args.size())
+            {
+                svalue = args[++i];
+            }
+            else
+            {
+                std::cerr << "The option " << arg << " requires an argument.\n";
+                return EXIT_FAILURE;
+            }
+        }
         else
         {
             std::cerr << "Unknown option `" << arg << "'.\n";
@@ -176,10 +192,6 @@ int main(int argc, char **argv)
 
         // Multilayer perceptron object
         mc::MultilayerPerceptron mlp;
-
-        // Parameters of the mlp
-        mlp.eta = evalue;
-        mlp.mu = mvalue;
 
         int iterations = ivalue;
 
@@ -223,7 +235,11 @@ int main(int argc, char **argv)
         topology.back() = trainDataset.nOfOutputs;
 
         // Initialize the network using the topology vector
-        mlp.initialize(hiddenLayers + 2, topology);
+        mlp = mc::MultilayerPerceptron(hiddenLayers + 2, topology);
+
+        // Parameters of the mlp
+        mlp.eta = evalue;
+        mlp.mu = mvalue;
 
         // Seed for random numbers
         const std::vector<int> seeds = {1, 2, 3, 4, 5};
@@ -268,6 +284,51 @@ int main(int argc, char **argv)
         std::cout << "************\n";
         std::cout << "Train error (Mean +- SD): " << averageTrainError << " +- " << stdTrainError << "\n";
         std::cout << "Test error (Mean +- SD):          " << averageTestError << " +- " << stdTestError << "\n";
+
+        // Save final metrics to CSV if requested
+        if (sflag)
+        {
+            bool fileExistsAndNotEmpty = false;
+            bool needsNewline = false;
+            {
+                std::ifstream checkFile(svalue, std::ios::binary);
+                if (checkFile.is_open())
+                {
+                    checkFile.seekg(0, std::ios::end);
+                    std::streampos length = checkFile.tellg();
+                    if (length > 0)
+                    {
+                        fileExistsAndNotEmpty = true;
+                        checkFile.seekg(-1, std::ios::end);
+                        char lastChar;
+                        if (checkFile.get(lastChar) && lastChar != '\n')
+                        {
+                            needsNewline = true;
+                        }
+                    }
+                }
+            }
+
+            std::ofstream csvFile(svalue, std::ios::app);
+            if (!csvFile.is_open())
+            {
+                std::cerr << "Error: Could not open CSV file `" << svalue << "' for writing.\n";
+                return EXIT_FAILURE;
+            }
+
+            if (!fileExistsAndNotEmpty)
+            {
+                csvFile << "nCapasOcultas, nNeuronas, mediaMSE train, stdMSE train, mediaMSE Test, stdMSE Test\n";
+            }
+            else if (needsNewline)
+            {
+                csvFile << "\n";
+            }
+
+            csvFile << lvalue << "," << hvalue << ","
+                    << averageTrainError << "," << stdTrainError << ","
+                    << averageTestError << "," << stdTestError << "\n";
+        }
 
         return EXIT_SUCCESS;
     }

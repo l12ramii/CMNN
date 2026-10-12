@@ -79,7 +79,7 @@ namespace mc
      * @class MultilayerPerceptron
      * @brief Implementation of a Multilayer Perceptron (MLP) artificial neural network.
      *
-     * Supports feedforward propagation, error backpropagation, online and offline training, momentum,
+     * Supports feedforward propagation, error backpropagation, online training, momentum,
      * model evaluation (MSE), and weight serialization.
      */
     class MultilayerPerceptron
@@ -164,16 +164,6 @@ namespace mc
          */
         void performEpochOnline(const std::vector<double> &input, const std::vector<double> &target);
 
-        /**
-         * @brief Performs a single offline training epoch step for one input-target pattern pair.
-         *
-         * Feeds inputs, computes forward propagation, backpropagates error, and adjusts weights.
-         *
-         * @param[in] input Input feature vector for the pattern.
-         * @param[in] target Desired target output vector for the pattern.
-         */
-        void performEpochOffline(const std::vector<double> &input, const std::vector<double> &target);
-
     public:
         double eta{0.1}; /**< Learning rate parameter (\f$\eta\f$) */
         double mu{0.9};  /**< Momentum factor parameter (\f$\mu\f$) */
@@ -218,12 +208,6 @@ namespace mc
          */
         void trainOnline(const util::Dataset &trainDataset);
         
-        /**
-         * @brief Performs one offline training epoch over the entire training dataset.
-         *
-         * @param[in] trainDataset Dataset containing training patterns.
-         */
-        void trainOffline(const util::Dataset &trainDataset);
 
         /**
          * @brief Executes the online backpropagation training algorithm for up to maxiter iterations.

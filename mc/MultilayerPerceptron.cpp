@@ -286,28 +286,6 @@ void MultilayerPerceptron::performEpochOnline(const std::vector<double> &input, 
 	this->accumulateChange();
 	this->weightAdjustment();
 }
-// ------------------------------
-
-void MultilayerPerceptron::performEpochOffline(const std::vector<double> &input, const std::vector<double> &target)
-{
-	// Para cada capa
-	for (int h = 1; h < this->nOfLayers; h++)
-	{
-		// Para cada neurona
-		for (int j = 0; j < this->layers[h].nOfNeurons; j++)
-		{
-			// Poner deltaW a cero
-			auto &deltaW = this->layers[h].neurons[j].deltaW;
-			std::fill(deltaW.begin(), deltaW.end(), 0.0);
-		}
-	}
-
-	this->feedInputs(input);
-	this->forwardPropagate();
-	this->backpropagateError(target);
-	this->accumulateChange();
-	this->weightAdjustment();
-}
 
 // ------------------------------
 
@@ -316,15 +294,6 @@ void MultilayerPerceptron::trainOnline(const util::Dataset &trainDataset)
 	for (size_t i = 0; i < trainDataset.nOfPatterns; i++)
 	{
 		this->performEpochOnline(trainDataset.inputs[i], trainDataset.outputs[i]);
-	}
-}
-// ------------------------------
-
-void MultilayerPerceptron::trainOffline(const util::Dataset &trainDataset)
-{
-	for (size_t i = 0; i < trainDataset.nOfPatterns; i++)
-	{
-		this->performEpochOffline(trainDataset.inputs[i], trainDataset.outputs[i]);
 	}
 }
 
@@ -394,6 +363,7 @@ void MultilayerPerceptron::runOnlineBackPropagation(const util::Dataset &trainDa
 
 		trainOnline(trainDataset);
 		double trainError = test(trainDataset);
+		double currentTestError = test(pDatosTest);
 		if (countTrain == 0 || trainError < minTrainError)
 		{
 			if ((minTrainError - trainError) > 0.00001)
@@ -419,7 +389,7 @@ void MultilayerPerceptron::runOnlineBackPropagation(const util::Dataset &trainDa
 
 		countTrain++;
 
-		std::cout << "Iteration " << countTrain << "\t Training error: " << trainError << std::endl;
+		std::cout << "Iteration " << countTrain << "\t Training error: " << trainError << "\t Test error: " << currentTestError << std::endl;
 
 	} while (countTrain < maxiter);
 
