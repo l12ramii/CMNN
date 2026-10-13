@@ -265,8 +265,8 @@ void MultilayerPerceptron::printNetwork()
 }
 
 // ------------------------------
-
-void MultilayerPerceptron::performEpochOnline(const std::vector<double> &input, const std::vector<double> &target)
+// ACTUALIZAR
+void MultilayerPerceptron::performEpoch(const std::vector<double> &input, const std::vector<double> &target, int errorFunction)
 {
 	// Para cada capa
 	for (int h = 1; h < this->nOfLayers; h++)
@@ -288,18 +288,18 @@ void MultilayerPerceptron::performEpochOnline(const std::vector<double> &input, 
 }
 
 // ------------------------------
-
-void MultilayerPerceptron::trainOnline(const util::Dataset &trainDataset)
+// ACTUALIZAR
+void MultilayerPerceptron::train(const util::Dataset &trainDataset, int errorFunction)
 {
 	for (size_t i = 0; i < trainDataset.nOfPatterns; i++)
 	{
-		this->performEpochOnline(trainDataset.inputs[i], trainDataset.outputs[i]);
+		this->performEpoch(trainDataset.inputs[i], trainDataset.outputs[i], errorFunction);
 	}
 }
 
 // ------------------------------
 
-double MultilayerPerceptron::test(const util::Dataset &testDataset)
+double MultilayerPerceptron::test(const util::Dataset &testDataset, int errorFunction)
 {
 
 	int numSalidas = this->layers.back().nOfNeurons;
@@ -315,6 +315,12 @@ double MultilayerPerceptron::test(const util::Dataset &testDataset)
 		mse += this->obtainError(testDataset.outputs[i]);
 	}
 	return mse / testDataset.nOfPatterns;
+}
+
+// ------------------------------
+
+double testClassification(const util::Dataset &dataset){
+	// TODO
 }
 
 // Optional - KAGGLE
@@ -346,7 +352,8 @@ void MultilayerPerceptron::predict(const util::Dataset &pDatosTest)
 // Run the traning algorithm for a given number of epochs, using trainDataset
 // Once finished, check the performance of the network in testDataset
 // Both training and test MSEs should be obtained and stored in errorTrain and errorTest
-void MultilayerPerceptron::runOnlineBackPropagation(const util::Dataset &trainDataset, const util::Dataset &pDatosTest, int maxiter, double &errorTrain, double &errorTest)
+//Actualizar
+void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset, const util::Dataset &pDatosTest, std::size_t maxIter , double &errorTrain, double &errorTest,double &ccrTrain,double &ccrTest, int errorFunction)
 {
 	int countTrain = 0;
 
@@ -361,9 +368,9 @@ void MultilayerPerceptron::runOnlineBackPropagation(const util::Dataset &trainDa
 	do
 	{
 
-		trainOnline(trainDataset);
-		double trainError = test(trainDataset);
-		double currentTestError = test(pDatosTest);
+		train(trainDataset, errorFunction);
+		double trainError = test(trainDataset, errorFunction);
+		double currentTestError = test(pDatosTest, errorFunction);
 		if (countTrain == 0 || trainError < minTrainError)
 		{
 			if ((minTrainError - trainError) > 0.00001)
@@ -384,14 +391,14 @@ void MultilayerPerceptron::runOnlineBackPropagation(const util::Dataset &trainDa
 		{
 			std::cout << "We exit because the training is not improving!!" << std::endl;
 			this->restoreWeights();
-			countTrain = maxiter;
+			countTrain = maxIter;
 		}
 
 		countTrain++;
 
 		std::cout << "Iteration " << countTrain << "\t Training error: " << trainError << "\t Test error: " << currentTestError << std::endl;
 
-	} while (countTrain < maxiter);
+	} while (countTrain < maxIter);
 
 	std::cout << "NETWORK WEIGHTS" << std::endl;
 	std::cout << "===============" << std::endl;
@@ -414,7 +421,7 @@ void MultilayerPerceptron::runOnlineBackPropagation(const util::Dataset &trainDa
 		std::cout << std::endl;
 	}
 
-	testError = test(pDatosTest);
+	testError = test(pDatosTest, errorFunction);
 	errorTest = testError;
 	errorTrain = minTrainError;
 }

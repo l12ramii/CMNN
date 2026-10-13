@@ -2,7 +2,7 @@
 
 A modular, high-performance implementation of a **Multilayer Perceptron (MLP)** artificial neural network built from scratch in C++, trained using the **Online Backpropagation** algorithm with momentum and early stopping.
 
-Developed for the *Computational Models* (*Modelos de Computación*) course at the **University of Córdoba (UCO)**.
+Developed for the *Computational Models* (*Modelos Computacionales*) course at the **University of Córdoba (UCO)**.
 
 ---
 

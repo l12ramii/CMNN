@@ -55,8 +55,10 @@ namespace mc
     class Layer
     {
     public:
-        int nOfNeurons;              /**< Number of neurons contained in this layer */
-        std::vector<Neuron> neurons; /**< Vector containing the neurons of the layer */
+        /** Number of neurons contained in this layer */
+        int nOfNeurons;
+        /** Vector containing the neurons of the layer */
+        std::vector<Neuron> neurons;
 
         /**
          * @brief Default constructor for Layer.
@@ -161,12 +163,17 @@ namespace mc
          *
          * @param[in] input Input feature vector for the pattern.
          * @param[in] target Desired target output vector for the pattern.
+         * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
          */
-        void performEpochOnline(const std::vector<double> &input, const std::vector<double> &target);
+        void performEpoch(const std::vector<double> &input, const std::vector<double> &target, int errorFunction);
 
     public:
-        double eta{0.1}; /**< Learning rate parameter (\f$\eta\f$) */
-        double mu{0.9};  /**< Momentum factor parameter (\f$\mu\f$) */
+        /** Learning rate parameter (\f$\eta\f$) */
+        double eta{0.1};
+        /** Momentum factor parameter (\f$\mu\f$) */
+        double mu{0.9};
+        /** Oline training parameter: true->online, false->offline  */
+        bool online;
 
         /**
          * @brief Default constructor for MultilayerPerceptron.
@@ -190,9 +197,18 @@ namespace mc
          * @brief Evaluates the network on a given dataset and returns the Mean Squared Error (MSE).
          *
          * @param[in] dataset The dataset containing input patterns and expected outputs.
+         * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
          * @return Mean Squared Error (MSE) across all patterns in the dataset.
          */
-        double test(const util::Dataset &dataset);
+        double test(const util::Dataset &dataset, int errorFunction);
+
+        /**
+         * @brief Tests the network with a dataset and returns the classification correctness rate (CCR).
+         *
+         * @param[in] dataset Dataset to evaluate.
+         * @return CCR (percentage of correctly classified samples).
+         */
+        double testClassification(const util::Dataset &dataset);
 
         /**
          * @brief Obtains and prints the predicted outputs for a dataset in Kaggle CSV format (Id,Predicted).
@@ -202,27 +218,33 @@ namespace mc
         void predict(const util::Dataset &testDataset);
 
         /**
-         * @brief Performs one online training epoch over the entire training dataset.
-         *
-         * @param[in] trainDataset Dataset containing training patterns.
-         */
-        void trainOnline(const util::Dataset &trainDataset);
-        
-
-        /**
-         * @brief Executes the online backpropagation training algorithm for up to maxiter iterations.
-         *
-         * Monitors training performance with early stopping, keeps track of the best weights,
-         * and reports training and test errors.
+         * @brief Trains the network for one epoch over the given training dataset.
          *
          * @param[in] trainDataset Training dataset.
-         * @param[in] testDataset Test dataset used for performance evaluation.
-         * @param[in] maxiter Maximum number of training epochs/iterations.
-         * @param[out] errorTrain Reference to store the resulting minimum training MSE.
-         * @param[out] errorTest Reference to store the resulting test MSE evaluated on testDataset.
+         * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
          */
-        void runOnlineBackPropagation(const util::Dataset &trainDataset, const util::Dataset &testDataset,
-                                      int maxiter, double &errorTrain, double &errorTest);
+        void train(const util::Dataset &trainDataset, int errorFunction);
+
+        /**
+         * @brief Performs backpropagation training on the given datasets.
+         *
+         * @param[in] trainDataset Training dataset.
+         * @param[in] testDataset Test dataset for evaluation.
+         * @param[in] maxIter Maximum number of training iterations.
+         * @param[out] errorTrain Training error (MSE) after training.
+         * @param[out] errorTest Test error (MSE) after training.
+         * @param[out] ccrTrain Classification correctness rate on training set.
+         * @param[out] ccrTest Classification correctness rate on test set.
+         * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
+         */
+        void runBackPropagation(const util::Dataset &trainDataset,
+                                const util::Dataset &testDataset,
+                                std::size_t maxIter,
+                                double &errorTrain,
+                                double &errorTest,
+                                double &ccrTrain,
+                                double &ccrTest,
+                                int errorFunction);
 
         /**
          * @brief Saves the network architecture and model weights to a text file.
