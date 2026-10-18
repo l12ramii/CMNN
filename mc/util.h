@@ -219,7 +219,9 @@ namespace util
     {
         return 1.0 / (1.0 + std::exp(-x));
     }
-    
+
+    std::vector<double> softmax(const std::vector<double> &net);
+
 } // namespace util
 
 #endif /* UTIL_H_ */

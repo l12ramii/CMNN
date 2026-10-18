@@ -128,7 +128,6 @@ Dataset util::readData(const std::string &fileName)
     return dataset;
 }
 
-
 // ------------------------------
 // Scale the dataset inputs to a given range [minAllowed, maxAllowed] considering the min
 // and max values of the feature in the dataset (minData and maxData).
@@ -171,7 +170,7 @@ void util::obtainMaxMinValuesFromMatrix(const std::vector<std::vector<double>> &
 
     size_t numCol = matrix.at(0).size();
     size_t numFil = matrix.size();
-    
+
     obtainedMaxs.resize(numCol);
     obtainedMins.resize(numCol);
 
@@ -192,6 +191,28 @@ void util::obtainMaxMinValuesFromMatrix(const std::vector<std::vector<double>> &
         obtainedMins[c] = min;
         obtainedMaxs[c] = max;
     }
+}
+
+std::vector<double> util::softmax(const std::vector<double> &net)
+{
+    if (net.empty())
+        return {};
+
+    double maxVal = *std::max_element(net.begin(), net.end());
+    std::vector<double> smax(net.size());
+    for (size_t i = 0; i < net.size(); i++)
+    {
+        smax[i] = std::exp(net[i] - maxVal);
+    }
+
+    double sum = std::accumulate(smax.begin(), smax.end(), 0.0);
+    std::vector<double> out(net.size());
+    for (size_t i = 0; i < net.size(); i++)
+    {
+        out[i] = smax[i] / sum;
+    }
+
+    return out;
 }
 
 // ------------------------------

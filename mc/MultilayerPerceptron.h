@@ -82,10 +82,16 @@ namespace mc
      * @brief Implementation of a Multilayer Perceptron (MLP) artificial neural network.
      *
      * Supports feedforward propagation, error backpropagation, online training, momentum,
-     * model evaluation (MSE), and weight serialization.
+     * model evaluation (MSE, Cross Entropy), and weight serialization.
      */
     class MultilayerPerceptron
     {
+    public:
+        /**
+         * @brief Function pointer type for error calculation on a pattern.
+         */
+        using ErrorFunctionType = double (MultilayerPerceptron::*)(const std::vector<double> &);
+
     private:
         /** Total number of layers in the network (input + hidden + output) */
         int nOfLayers{0};
@@ -126,13 +132,7 @@ namespace mc
          */
         void forwardPropagate();
 
-        /**
-         * @brief Calculates the Mean Squared Error (MSE) of the output layer activations with respect to target values.
-         *
-         * @param[in] target Vector of target output values.
-         * @return Mean Squared Error (MSE) for the current pattern.
-         */
-        double obtainError(const std::vector<double> &target);
+
 
         /**
          * @brief Backpropagates the output error gradients from the output layer to the first hidden layer.
@@ -157,6 +157,15 @@ namespace mc
         void printNetwork();
 
         /**
+         * @brief Performs a single online training epoch step for one input-target pattern pair using a function pointer.
+         *
+         * @param[in] input Input feature vector for the pattern.
+         * @param[in] target Desired target output vector for the pattern.
+         * @param[in] errorFunc Error function pointer.
+         */
+        void performEpoch(const std::vector<double> &input, const std::vector<double> &target, ErrorFunctionType errorFunc);
+
+        /**
          * @brief Performs a single online training epoch step for one input-target pattern pair.
          *
          * Feeds inputs, computes forward propagation, backpropagates error, and adjusts weights.
@@ -165,7 +174,7 @@ namespace mc
          * @param[in] target Desired target output vector for the pattern.
          * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
          */
-        void performEpoch(const std::vector<double> &input, const std::vector<double> &target, int errorFunction);
+        void performEpoch(const std::vector<double> &input, const std::vector<double> &target, int errorFunction = 0);
 
     public:
         /** Learning rate parameter (\f$\eta\f$) */
@@ -188,19 +197,57 @@ namespace mc
          */
         MultilayerPerceptron(int nl, const std::vector<int> &npl);
 
-        /**
-         * @brief Default destructor for MultilayerPerceptron.
-         */
-        ~MultilayerPerceptron() = default;
+
 
         /**
-         * @brief Evaluates the network on a given dataset and returns the Mean Squared Error (MSE).
+         * @brief Calculates the error using the default error metric (MSE) for backwards compatibility.
+         *
+         * @param[in] target Vector of target output values.
+         * @return Error for the current pattern.
+         */
+        double obtainError(const std::vector<double> &target);
+
+        /**
+         * @brief Calculates the Mean Squared Error (MSE) of the output layer activations with respect to target values.
+         *
+         * @param[in] target Vector of target output values.
+         * @return Mean Squared Error (MSE) for the current pattern.
+         */
+        double obtainErrorMSE(const std::vector<double> &target);
+
+        /**
+         * @brief Calculates the Cross Entropy error of the output layer activations with respect to target values.
+         *
+         * @param[in] target Vector of target output values.
+         * @return Cross Entropy error for the current pattern.
+         */
+        double obtainErrorCrossEntropy(const std::vector<double> &target);
+
+        /**
+         * @brief Resolves an integer code to an ErrorFunctionType pointer without ifs.
+         *
+         * @param[in] code 0 for MSE, 1 for Cross Entropy.
+         * @return Function pointer to the corresponding error method.
+         */
+        static ErrorFunctionType getErrorFunction(int code);
+
+        /**
+         * @brief Evaluates the network on a given dataset and returns the error using a function pointer.
+         *
+         * @param[in] dataset The dataset containing input patterns and expected outputs.
+         * @param[in] errorFunc Pointer to error member function (&MultilayerPerceptron::obtainErrorMSE, etc.).
+         * @return Error across all patterns in the dataset.
+         */
+        double test(const util::Dataset &dataset, ErrorFunctionType errorFunc);
+
+        /**
+         * @brief Evaluates the network on a given dataset and returns the error.
          *
          * @param[in] dataset The dataset containing input patterns and expected outputs.
          * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
-         * @return Mean Squared Error (MSE) across all patterns in the dataset.
+         * @return Error across all patterns in the dataset.
          */
-        double test(const util::Dataset &dataset, int errorFunction);
+        double test(const util::Dataset &dataset, int errorFunction = 0);
 
         /**
          * @brief Tests the network with a dataset and returns the classification correctness rate (CCR).
@@ -218,12 +265,41 @@ namespace mc
         void predict(const util::Dataset &testDataset);
 
         /**
+         * @brief Trains the network for one epoch over the given training dataset using a function pointer.
+         *
+         * @param[in] trainDataset Training dataset.
+         * @param[in] errorFunc Pointer to error member function.
+         */
+        void train(const util::Dataset &trainDataset, ErrorFunctionType errorFunc);
+
+        /**
          * @brief Trains the network for one epoch over the given training dataset.
          *
          * @param[in] trainDataset Training dataset.
          * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
          */
-        void train(const util::Dataset &trainDataset, int errorFunction);
+        void train(const util::Dataset &trainDataset, int errorFunction = 0);
+
+        /**
+         * @brief Performs backpropagation training on the given datasets using a function pointer.
+         *
+         * @param[in] trainDataset Training dataset.
+         * @param[in] testDataset Test dataset for evaluation.
+         * @param[in] maxIter Maximum number of training iterations.
+         * @param[out] errorTrain Training error after training.
+         * @param[out] errorTest Test error after training.
+         * @param[out] ccrTrain Classification correctness rate on training set.
+         * @param[out] ccrTest Classification correctness rate on test set.
+         * @param[in] errorFunc Pointer to error member function.
+         */
+        void runBackPropagation(const util::Dataset &trainDataset,
+                                const util::Dataset &testDataset,
+                                std::size_t maxIter,
+                                double &errorTrain,
+                                double &errorTest,
+                                double &ccrTrain,
+                                double &ccrTest,
+                                ErrorFunctionType errorFunc);
 
         /**
          * @brief Performs backpropagation training on the given datasets.
@@ -231,8 +307,8 @@ namespace mc
          * @param[in] trainDataset Training dataset.
          * @param[in] testDataset Test dataset for evaluation.
          * @param[in] maxIter Maximum number of training iterations.
-         * @param[out] errorTrain Training error (MSE) after training.
-         * @param[out] errorTest Test error (MSE) after training.
+         * @param[out] errorTrain Training error after training.
+         * @param[out] errorTest Test error after training.
          * @param[out] ccrTrain Classification correctness rate on training set.
          * @param[out] ccrTest Classification correctness rate on test set.
          * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
@@ -244,7 +320,20 @@ namespace mc
                                 double &errorTest,
                                 double &ccrTrain,
                                 double &ccrTest,
-                                int errorFunction);
+                                int errorFunction = 0);
+
+        /**
+         * @brief Backward compatibility wrapper for runOnlineBackPropagation.
+         */
+        void runOnlineBackPropagation(const util::Dataset &trainDataset,
+                                      const util::Dataset &testDataset,
+                                      std::size_t maxIter,
+                                      double &errorTrain,
+                                      double &errorTest)
+        {
+            double ccrTr = 0.0, ccrTe = 0.0;
+            runBackPropagation(trainDataset, testDataset, maxIter, errorTrain, errorTest, ccrTr, ccrTe, 0);
+        }
 
         /**
          * @brief Saves the network architecture and model weights to a text file.
