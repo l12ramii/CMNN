@@ -22,8 +22,7 @@ MultilayerPerceptron::ErrorFunctionType MultilayerPerceptron::getErrorFunction(i
 {
 	static const ErrorFunctionType errorFunctions[] = {
 		&MultilayerPerceptron::obtainErrorMSE,
-		&MultilayerPerceptron::obtainErrorCrossEntropy
-	};
+		&MultilayerPerceptron::obtainErrorCrossEntropy};
 
 	return errorFunctions[code & 1];
 }
@@ -407,13 +406,13 @@ void MultilayerPerceptron::predict(const util::Dataset &pDatosTest)
 // Once finished, check the performance of the network in testDataset
 // Both training and test errors should be obtained and stored in errorTrain and errorTest
 void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
-                                              const util::Dataset &pDatosTest,
-                                              std::size_t maxIter,
-                                              double &errorTrain,
-                                              double &errorTest,
-                                              double &ccrTrain,
-                                              double &ccrTest,
-                                              ErrorFunctionType errorFunc)
+											  const util::Dataset &pDatosTest,
+											  std::size_t maxIter,
+											  double &errorTrain,
+											  double &errorTest,
+											  double &ccrTrain,
+											  double &ccrTest,
+											  ErrorFunctionType errorFunc)
 {
 	int countTrain = 0;
 
@@ -489,22 +488,22 @@ void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
 // ------------------------------
 
 void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
-                                              const util::Dataset &pDatosTest,
-                                              std::size_t maxIter,
-                                              double &errorTrain,
-                                              double &errorTest,
-                                              double &ccrTrain,
-                                              double &ccrTest,
-                                              int errorFunction)
+											  const util::Dataset &pDatosTest,
+											  std::size_t maxIter,
+											  double &errorTrain,
+											  double &errorTest,
+											  double &ccrTrain,
+											  double &ccrTest,
+											  int errorFunction)
 {
 	this->runBackPropagation(trainDataset,
-	                         pDatosTest,
-	                         maxIter,
-	                         errorTrain,
-	                         errorTest,
-	                         ccrTrain,
-	                         ccrTest,
-	                         MultilayerPerceptron::getErrorFunction(errorFunction));
+							 pDatosTest,
+							 maxIter,
+							 errorTrain,
+							 errorTest,
+							 ccrTrain,
+							 ccrTest,
+							 MultilayerPerceptron::getErrorFunction(errorFunction));
 }
 
 // Optional Kaggle: Save the model weights in a textfile
