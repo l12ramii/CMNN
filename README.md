@@ -22,22 +22,32 @@ Developed for the *Computational Models* (*Modelos Computacionales*) course at t
 
 ## Overview
 
-This project implements a fully configurable feed-forward Multilayer Perceptron capable of solving both classification (e.g., non-linearly separable logic gates such as XOR) and non-linear regression problems (function approximation and real-world time series).
+This project implements a fully configurable feed-forward Multilayer Perceptron capable of solving both classification (e.g., non-linearly separable logic gates such as XOR, multi-class benchmarks) and non-linear regression problems (function approximation and real-world time series).
 
-The network is trained using stochastic/online gradient descent where weights are updated pattern by pattern, incorporating a momentum term to accelerate convergence and navigate error plateaus.
+The network supports both stochastic/online gradient descent and batch/off-line learning, incorporating a momentum term to accelerate convergence and navigate error plateaus. Loss evaluation and training can use either Mean Squared Error (MSE) or Cross-Entropy loss via direct function pointers.
 
 ---
 
 ## Key Features
 
 - **Flexible Architecture**: Supports networks with $H \ge 2$ layers (1 input layer, $L \ge 1$ hidden layers with uniform width, and 1 output layer).
-- **Sigmoid Activation**: Logistic sigmoid activation function $\sigma(z) = \frac{1}{1 + e^{-z}}$ with trainable biases across all non-input layers.
-- **Online Backpropagation**: Pattern-by-pattern gradient descent with:
+- **Activation Functions**:
+  - Hidden layers: Logistic sigmoid activation $\sigma(z) = \frac{1}{1 + e^{-z}}$.
+  - Output layer: Configurable between Logistic Sigmoid and numerically stable Softmax ($\text{Softmax}(z_i) = \frac{e^{z_i - \max(z)}}{\sum_j e^{z_j - \max(z)}}$).
+- **Modular Loss Functions via Function Pointers**:
+  - Mean Squared Error (MSE).
+  - Cross-Entropy Loss with logarithmic lower clipping ($o_{po} \ge 10^{-10}$) to prevent arithmetic underflow.
+  - Zero-cost, branchless function dispatch table (`ErrorFunctionType`).
+- **Flexible Training Modes**:
+  - Online (pattern-by-pattern update).
+  - Offline / Batch training (gradient accumulation over the entire dataset before weight updates).
+- **Optimization Parameters**:
   - Configurable learning rate ($\eta$, default `0.1`).
   - Momentum coefficient ($\mu$, default `0.9`) to smooth weight updates and avoid local minima.
-- **Early Stopping & Best Weights Tracking**: Automatically stops training if the training MSE fails to improve by more than $10^{-5}$ over 50 consecutive epochs. Restores the historical best-performing weight checkpoint upon termination.
-- **Data Normalization (`-n`)**: Min-Max scaling feature that normalizes input attributes to $[-1, 1]$ and targets to $[0, 1]$.
-- **Statistical Multi-Seed Evaluation**: Automatically evaluates performance over 5 distinct random seeds (`1, 2, 3, 4, 5`) to report mean and standard deviation of Mean Squared Error (MSE).
+- **Early Stopping & Best Weights Tracking**: Automatically stops training if the training error fails to improve by more than $10^{-5}$ over 50 consecutive epochs. Restores the historical best-performing weight checkpoint upon termination.
+- **Data Normalization (`-n`)**: Min-Max scaling feature that normalizes input attributes to $[-1, 1]$ while preserving 1-of-K target encodings for classification.
+- **Classification Evaluation**: Classification Correctness Rate (CCR) computation alongside traditional MSE and Cross-Entropy loss metrics.
+- **Statistical Multi-Seed Evaluation**: Automatically evaluates performance over 5 distinct random seeds (`1, 2, 3, 4, 5`) to report mean and standard deviation.
 - **Weight Serialization**: Ability to save (`-w`) and load pre-trained network topologies and weight matrices.
 
 ---
@@ -101,13 +111,16 @@ The CLI program `./bin/la1` accepts the following arguments:
 | `-T` | `<path>` | **(Required)** Path to the test dataset file | — |
 | `-i` | `<int>` | Maximum number of training epochs / iterations | `1000` |
 | `-l` | `<int>` | Number of hidden layers | `1` |
-| `-h` | `<int>` | Number of neurons per hidden layer | `5` |
-| `-e` | `<float>` | Learning rate ($\eta$) | `0.1` |
-| `-m` | `<float>` | Momentum coefficient ($\mu$) | `0.9` |
-| `-n` | — | Enable Min-Max normalization (inputs to $[-1, 1]$, targets to $[0, 1]$) | `false` |
+| `-h` | `<int>` | Number of neurons per hidden layer | `4` |
+| `-e` | `<float>` | Learning rate ($\eta$) | `0.7` |
+| `-m` | `<float>` | Momentum coefficient ($\mu$) | `1.0` |
+| `-o` | — | Enable online/stochastic training mode (default is offline/batch) | `false` |
+| `-f` | `<int>` | Error function (`0` = MSE, `1` = Cross-Entropy) | `0` (MSE) |
+| `-s` | — | Use Softmax activation on the output layer (default is Sigmoid) | `false` |
+| `-n` | — | Enable Min-Max normalization (inputs to $[-1, 1]$) | `false` |
 | `-w` | `<path>` | Path to save/load network weights | Optional |
 | `-p` | — | Prediction mode (outputs Kaggle-compatible CSV format) | `false` |
-| `-s` / `--csv` | `<path>` | Save final summary metrics (Mean and SD) to a CSV file | Optional |
+| `--csv` | `<path>` | Save final summary metrics (Mean and SD) to a CSV file | Optional |
 
 ---
 

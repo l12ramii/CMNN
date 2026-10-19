@@ -27,14 +27,6 @@ MultilayerPerceptron::ErrorFunctionType MultilayerPerceptron::getErrorFunction(i
 	return errorFunctions[code & 1];
 }
 
-/*
-// ------------------------------
-// Constructor: Default values for all the parameters
-MultilayerPerceptron::MultilayerPerceptron()
-{
-}
-*/
-
 MultilayerPerceptron::MultilayerPerceptron(int nl, const std::vector<int> &npl)
 {
 	// Asignar número de capas
@@ -63,22 +55,6 @@ MultilayerPerceptron::MultilayerPerceptron(int nl, const std::vector<int> &npl)
 	}
 }
 
-/*
-// ------------------------------
-// DESTRUCTOR: free memory
-MultilayerPerceptron::~MultilayerPerceptron()
-{
-	// freeMemory();
-}
-*/
-
-/*
-// ------------------------------
-// Free memory for the data structures
-void MultilayerPerceptron::freeMemory() {
-
-}
-*/
 
 void MultilayerPerceptron::randomWeights()
 {
@@ -144,8 +120,8 @@ void MultilayerPerceptron::restoreWeights()
 
 void MultilayerPerceptron::forwardPropagate()
 {
-	// Para cada capa h a partir de la primera
-	for (size_t h = 1; h < this->nOfLayers; h++)
+	// Para cada capa h a partir de la primera excepto la última
+	for (size_t h = 1; h < this->nOfLayers - 1; h++)
 	{
 		// Para cada neurona j de la capa i
 		for (size_t j = 0; j < this->layers[h].nOfNeurons; j++)
@@ -159,6 +135,49 @@ void MultilayerPerceptron::forwardPropagate()
 			}
 			// Asignar la salida con sigmoide(net_h_j)
 			neuron.out = util::sigmoid(net);
+		}
+	}
+
+	// Índice de la penúltima capa
+	int prevOutLayer = this->nOfLayers - 2;
+	if (this->outputSoftmax == false)
+	{
+		// Si no usa softmax, calcular la salida de la última capa con sigmoide
+		for (size_t j = 0; j < this->layers.back().nOfNeurons; j++)
+		{
+			mc::Neuron &neuron = this->layers.back().neurons[j];
+			double net = neuron.w[0];
+
+			for (size_t i = 0; i < this->layers[prevOutLayer].nOfNeurons; i++)
+			{
+				net += neuron.w[i + 1] * this->layers[prevOutLayer].neurons[i].out;
+			}
+			neuron.out = util::sigmoid(net);
+		}
+	}
+	else
+	{
+		// Si sí se usa softmax
+		std::vector<double> netVector = std::vector<double>(this->layers.back().nOfNeurons);
+		for (size_t j = 0; j < this->layers.back().nOfNeurons; j++)
+		{
+			mc::Neuron &neuron = this->layers.back().neurons[j];
+			double net = neuron.w[0];
+
+			for (size_t i = 0; i < this->layers[prevOutLayer].nOfNeurons; i++)
+			{
+				net += neuron.w[i + 1] * this->layers[prevOutLayer].neurons[i].out;
+			}
+			netVector[j] = net;
+		}
+
+		std::vector<double> outVector = std::vector<double>(this->layers.back().nOfNeurons);
+		outVector = util::softmax(netVector);
+
+		for (size_t j = 0; j < this->layers.back().nOfNeurons; j++)
+		{
+			mc::Neuron &neuron = this->layers.back().neurons[j];
+			neuron.out = outVector[j];
 		}
 	}
 }
@@ -209,22 +228,26 @@ double MultilayerPerceptron::obtainErrorCrossEntropy(const std::vector<double> &
 void MultilayerPerceptron::backpropagateError(const std::vector<double> &target)
 {
 	// Para cada neurona de la capa salida, calcular delta
-	for (int j = 0; j < this->layers.back().nOfNeurons; j++)
+	for (size_t j = 0; j < this->layers.back().nOfNeurons; j++)
 	{
 		mc::Neuron &neuron = this->layers.back().neurons[j];
-		neuron.delta = -(target[j] - neuron.out) * neuron.out * (1.0 - neuron.out);
+		neuron.delta = -(target[j] - neuron.out);
+		if (this->outputSoftmax == false)
+		{
+			neuron.delta *= neuron.out * (1.0 - neuron.out);
+		}
 	}
 
 	// Para cada capa desde el final hasta el principio
-	for (auto h = this->nOfLayers - 2; h > 0; h--)
+	for (size_t h = this->nOfLayers - 2; h > 0; h--)
 	{
 		// Para cada neurona de la capa h
-		for (int j = 0; j < this->layers[h].nOfNeurons; j++)
+		for (size_t j = 0; j < this->layers[h].nOfNeurons; j++)
 		{
 			mc::Neuron &neuron = this->layers[h].neurons[j];
 			double aux = 0.0;
 			// Para cada neurona de la capa h + 1 conectada con j
-			for (int i = 0; i < this->layers[h + 1].nOfNeurons; i++)
+			for (size_t i = 0; i < this->layers[h + 1].nOfNeurons; i++)
 			{
 				aux += this->layers[h + 1].neurons[i].w[j + 1] * this->layers[h + 1].neurons[i].delta;
 			}
@@ -301,6 +324,9 @@ void MultilayerPerceptron::printNetwork()
 
 void MultilayerPerceptron::performEpoch(const std::vector<double> &input, const std::vector<double> &target, ErrorFunctionType errorFunc)
 {
+
+	
+
 	// Para cada capa
 	for (int h = 1; h < this->nOfLayers; h++)
 	{
@@ -320,14 +346,9 @@ void MultilayerPerceptron::performEpoch(const std::vector<double> &input, const 
 	this->weightAdjustment();
 }
 
-// ------------------------------
-
-void MultilayerPerceptron::performEpoch(const std::vector<double> &input, const std::vector<double> &target, int errorFunction)
-{
-	this->performEpoch(input, target, MultilayerPerceptron::getErrorFunction(errorFunction));
-}
 
 // ------------------------------
+
 void MultilayerPerceptron::train(const util::Dataset &trainDataset, ErrorFunctionType errorFunc)
 {
 	for (size_t i = 0; i < trainDataset.nOfPatterns; i++)

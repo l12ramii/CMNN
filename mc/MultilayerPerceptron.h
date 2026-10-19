@@ -11,6 +11,7 @@
 #include <string>
 #include <iostream>
 #include <utility>
+#include <functional>
 
 #include "util.h"
 
@@ -98,6 +99,10 @@ namespace mc
         /** Vector containing every layer in sequence from input to output */
         std::vector<Layer> layers;
 
+        bool outputSoftmax{false};
+
+        bool onlineTraining{false};
+
         /**
          * @brief Initializes all network weights with random values uniformly sampled in [-1.0, 1.0].
          */
@@ -165,17 +170,6 @@ namespace mc
          */
         void performEpoch(const std::vector<double> &input, const std::vector<double> &target, ErrorFunctionType errorFunc);
 
-        /**
-         * @brief Performs a single online training epoch step for one input-target pattern pair.
-         *
-         * Feeds inputs, computes forward propagation, backpropagates error, and adjusts weights.
-         *
-         * @param[in] input Input feature vector for the pattern.
-         * @param[in] target Desired target output vector for the pattern.
-         * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
-         */
-        void performEpoch(const std::vector<double> &input, const std::vector<double> &target, int errorFunction = 0);
-
     public:
         /** Learning rate parameter (\f$\eta\f$) */
         double eta{0.1};
@@ -230,6 +224,7 @@ namespace mc
          * @return Function pointer to the corresponding error method.
          */
         static ErrorFunctionType getErrorFunction(int code);
+
 
         /**
          * @brief Evaluates the network on a given dataset and returns the error using a function pointer.
