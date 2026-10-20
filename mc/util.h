@@ -88,7 +88,10 @@ namespace util
     /**
      * @brief Reads a dataset from a formatted text file.
      *
-     * The file begins with a header line containing: <nOfInputs> <nOfOutputs> <nOfPatterns>,
+     * The file begins with a header line containing:
+     * @code
+     * <nOfInputs> <nOfOutputs> <nOfPatterns>
+     * @endcode
      * followed by lines containing inputs and target outputs for each pattern.
      *
      * @param[in] fileName Path to the dataset file to be read.
@@ -220,6 +223,18 @@ namespace util
         return 1.0 / (1.0 + std::exp(-x));
     }
 
+    /**
+     * @brief Computes the numerically stable Softmax activation function over a vector of net values.
+     *
+     * Shifts inputs by subtracting their maximum value \f$D = \max_l(net_l)\f$ to prevent
+     * exponential overflow before computing the normalized probabilities:
+     * \f[
+     *   \text{softmax}(net_j) = \frac{e^{net_j - D}}{\sum_{l=1}^{k} e^{net_l - D}}
+     * \f]
+     *
+     * @param[in] net Vector of real-valued net inputs (activation potentials).
+     * @return std::vector<double> Vector containing the Softmax probability distribution (sums to 1.0).
+     */
     std::vector<double> softmax(const std::vector<double> &net);
 
 } // namespace util
