@@ -26,7 +26,7 @@ MultilayerPerceptron::ErrorFunctionType MultilayerPerceptron::getErrorFunction(i
 		&MultilayerPerceptron::obtainErrorMSE,
 		&MultilayerPerceptron::obtainErrorCrossEntropy};
 
-	return errorFunctions[code & 1];
+	return errorFunctions[code];
 }
 
 MultilayerPerceptron::MultilayerPerceptron(int nl, const std::vector<int> &npl)
@@ -228,14 +228,52 @@ double MultilayerPerceptron::obtainErrorCrossEntropy(const std::vector<double> &
 
 void MultilayerPerceptron::backpropagateError(const std::vector<double> &target)
 {
-	// Para cada neurona de la capa salida, calcular delta
-	for (size_t j = 0; j < this->layers.back().nOfNeurons; j++)
+	size_t nH = this->layers.back().nOfNeurons;
+
+	if (!this->outSoftmax)
 	{
-		mc::Neuron &neuron = this->layers.back().neurons[j];
-		neuron.delta = -(target[j] - neuron.out);
-		if (this->outSoftmax == false)
+		// Capa de salida con activación Sigmoide
+		for (size_t j = 0; j < nH; j++)
 		{
-			neuron.delta *= neuron.out * (1.0 - neuron.out);
+			mc::Neuron &neuron = this->layers.back().neurons[j];
+			if (!this->isCrossEntropy)
+			{
+				// MSE + Sigmoide
+				neuron.delta = -(target[j] - neuron.out) * neuron.out * (1.0 - neuron.out);
+			}
+			else
+			{
+				// Entropía Cruzada + Sigmoide
+				double out = (neuron.out < 1e-10) ? 1e-10 : neuron.out;
+				neuron.delta = -(target[j] / out) * neuron.out * (1.0 - neuron.out);
+			}
+		}
+	}
+	else
+	{
+		// Capa de salida con activación Softmax
+		if (this->isCrossEntropy)
+		{
+			// Entropía Cruzada + Softmax (simplificación analítica: oj - dj)
+			for (size_t j = 0; j < nH; j++)
+			{
+				mc::Neuron &neuron = this->layers.back().neurons[j];
+				neuron.delta = -(target[j] - neuron.out);
+			}
+		}
+		else
+		{
+			// MSE + Softmax: delta_j = out_j * [ sum_i (d_i - out_i)*out_i - (d_j - out_j) ]
+			double sumTerm = 0.0;
+			for (size_t i = 0; i < nH; i++)
+			{
+				sumTerm += (target[i] - this->layers.back().neurons[i].out) * this->layers.back().neurons[i].out;
+			}
+			for (size_t j = 0; j < nH; j++)
+			{
+				mc::Neuron &neuron = this->layers.back().neurons[j];
+				neuron.delta = neuron.out * (sumTerm - (target[j] - neuron.out));
+			}
 		}
 	}
 
@@ -310,7 +348,8 @@ void MultilayerPerceptron::printNetwork()
 {
 	for (size_t h = 1; h < this->nOfLayers; h++)
 	{
-		std::cout << "Matriz de pesos Capa " << h << ":" << std::endl;
+		std::cout << "Layer " << h << std::endl;
+		std::cout << "------" << std::endl;
 		for (size_t j = 0; j < this->layers[h].nOfNeurons; j++)
 		{
 			mc::Neuron &neuron = this->layers[h].neurons[j];
@@ -450,20 +489,18 @@ void MultilayerPerceptron::predict(const util::Dataset &pDatosTest)
 	int numSalidas = this->layers.back().nOfNeurons;
 	std::vector<double> obtained = std::vector<double>(numSalidas);
 
-	cout << "Id,Predicted" << endl;
+	std::cout << "Id,Category" << std::endl;
 
 	for (size_t i = 0; i < pDatosTest.nOfPatterns; i++)
 	{
-
 		this->feedInputs(pDatosTest.inputs[i]);
 		this->forwardPropagate();
 		this->getOutputs(obtained);
 
-		cout << i;
+		auto predIt = std::max_element(obtained.begin(), obtained.end());
+		int predictedClass = std::distance(obtained.begin(), predIt);
 
-		for (size_t j = 0; j < numSalidas; j++)
-			cout << "," << obtained[j];
-		cout << endl;
+		std::cout << i << "," << predictedClass << std::endl;
 	}
 }
 
@@ -491,6 +528,7 @@ void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
 	this->eta = eta;
 	this->mu = mu;
 	this->outSoftmax = outSoftmax;
+	this->isCrossEntropy = (errorFunc == &MultilayerPerceptron::obtainErrorCrossEntropy);
 	double minTrainError = 0;
 	int iterWithoutImproving = 0;
 	double testError = 0;
@@ -501,7 +539,6 @@ void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
 
 		train(trainDataset, onlineTraining);
 		double trainError = test(trainDataset, errorFunc);
-		double currentTestError = test(pDatosTest, errorFunc);
 		if (countTrain == 0 || trainError < minTrainError)
 		{
 			if ((minTrainError - trainError) > 0.00001)
@@ -527,9 +564,11 @@ void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
 
 		countTrain++;
 
-		std::cout << "Iteration " << countTrain << "\t Training error: " << trainError << "\t Test error: " << currentTestError << std::endl;
+		std::cout << "Iteration " << countTrain << "	 Training error: " << trainError << std::endl;
 
 	} while (countTrain < maxIter);
+
+	this->restoreWeights();
 
 	std::cout << "NETWORK WEIGHTS" << std::endl;
 	std::cout << "===============" << std::endl;

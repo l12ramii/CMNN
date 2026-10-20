@@ -99,8 +99,6 @@ namespace mc
         /** Vector containing every layer in sequence from input to output */
         std::vector<Layer> layers;
 
-        bool outSoftmax{false};
-
         /**
          * @brief Initializes all network weights with random values uniformly sampled in [-\frac{1}{\sqrt{n_{h-1}}},\frac{1}{\sqrt{n_{h-1}}}] where n-1 stands for the number of connections to the previous layer.
          */
@@ -180,6 +178,10 @@ namespace mc
         double eta{0.1};
         /** Momentum factor parameter (\f$\mu\f$) */
         double mu{0.9};
+        /** Output layer activation function (false: sigmoid, true: softmax) */
+        bool outSoftmax{false};
+        /** Error function type indicator (false: MSE, true: Cross Entropy) */
+        bool isCrossEntropy{false};
 
         /**
          * @brief Default constructor for MultilayerPerceptron.

@@ -1,6 +1,6 @@
 # Adapted from Job Vranish (https://spin.atomicobject.com/2016/08/26/makefile-c-projects/)
-TARGET_EXEC := la1
-DEFAULT_RUN_CONFIG := -t ./dat/train_xor.dat -T ./dat/test_xor.dat -i 1000 -l 1 -h 10 -e 0.1 -m 0.9
+TARGET_EXEC := la2
+DEFAULT_RUN_CONFIG := -t ./dat/datasetsLA2MC/train_xor.dat -T ./dat/datasetsLA2MC/test_xor.dat -i 1000 -l 1 -h 4 -e 0.7 -m 1.0
 
 BUILD_DIR := ./bin
 SRC_DIRS := .
@@ -32,6 +32,7 @@ CPPFLAGS := $(INC_FLAGS) -MMD -MP -O3
 # The final build step.
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
+	ln -sf $(TARGET_EXEC) $(BUILD_DIR)/la1
 
 # Build step for C source
 $(BUILD_DIR)/%.c.o: %.c
@@ -45,7 +46,7 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
     
 .PHONY: clean
 clean:
-	rm -r $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
 # Include the .d makefiles. The - at the front suppresses the errors of missing
 # Makefiles. Initially, all the .d files will be missing, and we don't want those
