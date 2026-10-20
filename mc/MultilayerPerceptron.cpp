@@ -65,7 +65,7 @@ void MultilayerPerceptron::randomWeights()
 			mc::Neuron &neuron = this->layers[h].neurons[j];
 			for (size_t i = 0; i < neuron.w.size(); i++)
 			{
-				neuron.w[i] = util::randomDouble(-(1 / std::sqrt(this->layers[h - 1].nOfNeurons)), (1 / std::sqrt(this->layers[h - 1].nOfNeurons)));
+				neuron.w[i] = util::randomDouble(-(1.0 / std::sqrt(this->layers[h - 1].nOfNeurons)), (1 / std::sqrt(this->layers[h - 1].nOfNeurons)));
 			}
 		}
 	}

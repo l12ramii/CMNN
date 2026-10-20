@@ -15,14 +15,14 @@ using namespace util;
 static std::mt19937 gen;
 
 // ------------------------------
-// Set the seed for random number generation
+
 void util::setSeed(int seed)
 {
     gen.seed(seed);
 }
 
 // ------------------------------
-// Obtain an integer random number in the range [Low,High]
+
 int util::randomInt(int Low, int High)
 {
     std::uniform_int_distribution<int> dis(Low, High);
@@ -30,7 +30,7 @@ int util::randomInt(int Low, int High)
 }
 
 // ------------------------------
-// Obtain a real random number in the range [Low,High]
+
 double util::randomDouble(double Low, double High)
 {
     std::uniform_real_distribution<double> dis(Low, High);
@@ -38,7 +38,7 @@ double util::randomDouble(double Low, double High)
 }
 
 // ------------------------------
-// Generate a vector of unique random integers in the range [min, max]
+
 std::vector<int> util::integerRandomVectorWithoutRepeating(int min, int max, int howMany)
 {
     if (min > max || howMany <= 0)
@@ -67,7 +67,7 @@ std::vector<int> util::integerRandomVectorWithoutRepeating(int min, int max, int
 }
 
 // ------------------------------
-// Read a dataset from a file name and return it
+
 Dataset util::readData(const std::string &fileName)
 {
 
@@ -129,8 +129,7 @@ Dataset util::readData(const std::string &fileName)
 }
 
 // ------------------------------
-// Scale the dataset inputs to a given range [minAllowed, maxAllowed] considering the min
-// and max values of the feature in the dataset (minData and maxData).
+
 void util::minMaxScalerDataSetInputs(Dataset &dataset, double minAllowed, double maxAllowed,
                                      const std::vector<double> &minData, const std::vector<double> &maxData)
 {
@@ -144,8 +143,7 @@ void util::minMaxScalerDataSetInputs(Dataset &dataset, double minAllowed, double
 }
 
 // ------------------------------
-// Scale the dataset outputs to a given range [minAllowed, maxAllowed] considering the min
-// and max values of the output in the dataset (minData and maxData).
+
 void util::minMaxScalerDataSetOutputs(Dataset &dataset, double minAllowed, double maxAllowed,
                                       const std::vector<double> &minData, const std::vector<double> &maxData)
 {
@@ -159,7 +157,7 @@ void util::minMaxScalerDataSetOutputs(Dataset &dataset, double minAllowed, doubl
 }
 
 // ------------------------------
-// Extract maximum and minimum values from a matrix of doubles
+
 void util::obtainMaxMinValuesFromMatrix(const std::vector<std::vector<double>> &matrix, std::vector<double> &obtainedMins, std::vector<double> &obtainedMaxs)
 {
 
@@ -216,7 +214,7 @@ std::vector<double> util::softmax(const std::vector<double> &net)
 }
 
 // ------------------------------
-// Print the dataset
+
 void util::printDataset(const Dataset &dataset, int len, std::ostream &os)
 {
     if (len == 0)
