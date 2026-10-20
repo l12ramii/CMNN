@@ -244,8 +244,7 @@ void MultilayerPerceptron::backpropagateError(const std::vector<double> &target)
 			else
 			{
 				// Entropía Cruzada + Sigmoide
-				double out = (neuron.out < 1e-10) ? 1e-10 : neuron.out;
-				neuron.delta = -(target[j] / out) * neuron.out * (1.0 - neuron.out);
+				neuron.delta = -target[j] * (1.0 - neuron.out);
 			}
 		}
 	}
@@ -254,16 +253,16 @@ void MultilayerPerceptron::backpropagateError(const std::vector<double> &target)
 		// Capa de salida con activación Softmax
 		if (this->isCrossEntropy)
 		{
-			// Entropía Cruzada + Softmax (simplificación analítica: oj - dj)
+			// Entropía Cruzada + Softmax
 			for (size_t j = 0; j < nH; j++)
 			{
 				mc::Neuron &neuron = this->layers.back().neurons[j];
-				neuron.delta = -(target[j] - neuron.out);
+				neuron.delta = neuron.out - target[j];
 			}
 		}
 		else
 		{
-			// MSE + Softmax: delta_j = out_j * [ sum_i (d_i - out_i)*out_i - (d_j - out_j) ]
+			// MSE + Softmax
 			double sumTerm = 0.0;
 			for (size_t i = 0; i < nH; i++)
 			{
