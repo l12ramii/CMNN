@@ -13,6 +13,8 @@
 #include <string>
 #include <limits>
 #include <cmath>
+#include <algorithm>
+#include <iterator>
 
 using namespace mc;
 using namespace std;
@@ -32,7 +34,6 @@ MultilayerPerceptron::MultilayerPerceptron(int nl, const std::vector<int> &npl)
 	// Asignar número de capas
 	this->nOfLayers = nl;
 	this->layers.resize(nl);
-
 	// Para cada capa, llenarla de neuronas
 	for (int i = 0; i < nl; i++)
 	{
@@ -55,16 +56,16 @@ MultilayerPerceptron::MultilayerPerceptron(int nl, const std::vector<int> &npl)
 	}
 }
 
-
 void MultilayerPerceptron::randomWeights()
 {
-	for (auto &layer : this->layers)
+	for (size_t h = 1; h < this->nOfLayers; h++)
 	{
-		for (auto &neuron : layer.neurons)
+		for (size_t j = 0; j < this->layers[h].nOfNeurons; j++)
 		{
-			for (auto &weight : neuron.w)
+			mc::Neuron &neuron = this->layers[h].neurons[j];
+			for (size_t i = 0; i < neuron.w.size(); i++)
 			{
-				weight = util::randomDouble(-1.0, 1.0);
+				neuron.w[i] = util::randomDouble(-(1 / std::sqrt(this->layers[h - 1].nOfNeurons)), (1 / std::sqrt(this->layers[h - 1].nOfNeurons)));
 			}
 		}
 	}
@@ -140,7 +141,7 @@ void MultilayerPerceptron::forwardPropagate()
 
 	// Índice de la penúltima capa
 	int prevOutLayer = this->nOfLayers - 2;
-	if (this->outputSoftmax == false)
+	if (this->outSoftmax == false)
 	{
 		// Si no usa softmax, calcular la salida de la última capa con sigmoide
 		for (size_t j = 0; j < this->layers.back().nOfNeurons; j++)
@@ -232,7 +233,7 @@ void MultilayerPerceptron::backpropagateError(const std::vector<double> &target)
 	{
 		mc::Neuron &neuron = this->layers.back().neurons[j];
 		neuron.delta = -(target[j] - neuron.out);
-		if (this->outputSoftmax == false)
+		if (this->outSoftmax == false)
 		{
 			neuron.delta *= neuron.out * (1.0 - neuron.out);
 		}
@@ -280,7 +281,7 @@ void MultilayerPerceptron::accumulateChange()
 
 // ------------------------------
 
-void MultilayerPerceptron::weightAdjustment()
+void MultilayerPerceptron::weightAdjustment(int nOfPatterns)
 {
 	// Para cada capa h
 	for (size_t h = 1; h < this->nOfLayers; h++)
@@ -292,12 +293,12 @@ void MultilayerPerceptron::weightAdjustment()
 			// Para cada neurona de la capa anterior (h - 1)
 			for (size_t i = 0; i < this->layers[h - 1].nOfNeurons; i++)
 			{
-				neuron.w[i + 1] -= this->eta * neuron.deltaW[i + 1] + this->mu * this->eta * neuron.lastDeltaW[i + 1];
+				neuron.w[i + 1] -= (this->eta * neuron.deltaW[i + 1]) / nOfPatterns + (this->mu * this->eta * neuron.lastDeltaW[i + 1]) / nOfPatterns;
 				// Guardar deltaW en t-1 (instante de tiempo anterior)
 				neuron.lastDeltaW[i + 1] = neuron.deltaW[i + 1];
 			}
 			// Sesgo
-			neuron.w[0] -= this->eta * neuron.deltaW[0] + this->mu * this->eta * neuron.lastDeltaW[0];
+			neuron.w[0] -= (this->eta * neuron.deltaW[0]) / nOfPatterns + (this->mu * this->eta * neuron.lastDeltaW[0]) / nOfPatterns;
 			neuron.lastDeltaW[0] = neuron.deltaW[0];
 		}
 	}
@@ -322,11 +323,10 @@ void MultilayerPerceptron::printNetwork()
 	}
 }
 
-void MultilayerPerceptron::performEpoch(const std::vector<double> &input, const std::vector<double> &target, ErrorFunctionType errorFunc)
+// ------------------------------
+
+void MultilayerPerceptron::performEpochOnline(const std::vector<double> &input, const std::vector<double> &target)
 {
-
-	
-
 	// Para cada capa
 	for (int h = 1; h < this->nOfLayers; h++)
 	{
@@ -345,23 +345,46 @@ void MultilayerPerceptron::performEpoch(const std::vector<double> &input, const 
 	this->accumulateChange();
 	this->weightAdjustment();
 }
-
-
 // ------------------------------
 
-void MultilayerPerceptron::train(const util::Dataset &trainDataset, ErrorFunctionType errorFunc)
+void MultilayerPerceptron::performEpochOffline(const std::vector<double> &input, const std::vector<double> &target)
 {
-	for (size_t i = 0; i < trainDataset.nOfPatterns; i++)
-	{
-		this->performEpoch(trainDataset.inputs[i], trainDataset.outputs[i], errorFunc);
-	}
+	this->feedInputs(input);
+	this->forwardPropagate();
+	this->backpropagateError(target);
+	this->accumulateChange();
 }
 
 // ------------------------------
 
-void MultilayerPerceptron::train(const util::Dataset &trainDataset, int errorFunction)
+void MultilayerPerceptron::train(const util::Dataset &trainDataset, bool onlineTraining)
 {
-	this->train(trainDataset, MultilayerPerceptron::getErrorFunction(errorFunction));
+	if (onlineTraining)
+	{
+		for (size_t i = 0; i < trainDataset.nOfPatterns; i++)
+		{
+			this->performEpochOnline(trainDataset.inputs[i], trainDataset.outputs[i]);
+		}
+	}
+	else
+	{
+		// Para cada capa
+		for (int h = 1; h < this->nOfLayers; h++)
+		{
+			// Para cada neurona
+			for (int j = 0; j < this->layers[h].nOfNeurons; j++)
+			{
+				// Poner deltaW a cero
+				auto &deltaW = this->layers[h].neurons[j].deltaW;
+				std::fill(deltaW.begin(), deltaW.end(), 0.0);
+			}
+		}
+		for (size_t i = 0; i < trainDataset.nOfPatterns; i++)
+		{
+			this->performEpochOffline(trainDataset.inputs[i], trainDataset.outputs[i]);
+		}
+		this->weightAdjustment(trainDataset.nOfPatterns);
+	}
 }
 
 // ------------------------------
@@ -384,17 +407,39 @@ double MultilayerPerceptron::test(const util::Dataset &testDataset, ErrorFunctio
 
 // ------------------------------
 
-double MultilayerPerceptron::test(const util::Dataset &testDataset, int errorFunction)
-{
-	return this->test(testDataset, MultilayerPerceptron::getErrorFunction(errorFunction));
-}
-
-// ------------------------------
-
 double MultilayerPerceptron::testClassification(const util::Dataset &dataset)
 {
-	// TODO
-	return 0.0;
+	int CCR = 0;
+
+	if (dataset.nOfPatterns == 0)
+	{
+		return 0.0;
+	}
+
+	for (size_t i = 0; i < dataset.nOfPatterns; i++)
+	{
+		this->feedInputs(dataset.inputs[i]);
+		this->forwardPropagate();
+
+		std::vector<double> outputs(this->layers.back().nOfNeurons);
+		this->getOutputs(outputs);
+
+		// Source - https://stackoverflow.com/a/65163939
+		// Posted by Kostas, modified by community. See post 'Timeline' for change history
+		// Retrieved 2026-10-19, License - CC BY-SA 4.0
+		auto predIt = std::max_element(outputs.begin(), outputs.end());
+		int predictedClass = std::distance(outputs.begin(), predIt);
+
+		auto targetIt = std::max_element(dataset.outputs[i].begin(), dataset.outputs[i].end());
+		int trueClass = std::distance(dataset.outputs[i].begin(), targetIt);
+
+		if (predictedClass == trueClass)
+		{
+			CCR++;
+		}
+	}
+
+	return (static_cast<double>(CCR) / dataset.nOfPatterns) * 100.0;
 }
 
 // Optional - KAGGLE
@@ -433,13 +478,19 @@ void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
 											  double &errorTest,
 											  double &ccrTrain,
 											  double &ccrTest,
+											  double eta,
+											  double mu,
+											  bool outSoftmax,
+											  bool onlineTraining,
 											  ErrorFunctionType errorFunc)
 {
 	int countTrain = 0;
 
 	// Random assignment of weights (starting point)
 	this->randomWeights();
-
+	this->eta = eta;
+	this->mu = mu;
+	this->outSoftmax = outSoftmax;
 	double minTrainError = 0;
 	int iterWithoutImproving = 0;
 	double testError = 0;
@@ -448,7 +499,7 @@ void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
 	do
 	{
 
-		train(trainDataset, errorFunc);
+		train(trainDataset, onlineTraining);
 		double trainError = test(trainDataset, errorFunc);
 		double currentTestError = test(pDatosTest, errorFunc);
 		if (countTrain == 0 || trainError < minTrainError)
@@ -502,29 +553,10 @@ void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
 	}
 
 	testError = test(pDatosTest, errorFunc);
+	ccrTrain = testClassification(trainDataset);
+	ccrTest = testClassification(pDatosTest);
 	errorTest = testError;
 	errorTrain = minTrainError;
-}
-
-// ------------------------------
-
-void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
-											  const util::Dataset &pDatosTest,
-											  std::size_t maxIter,
-											  double &errorTrain,
-											  double &errorTest,
-											  double &ccrTrain,
-											  double &ccrTest,
-											  int errorFunction)
-{
-	this->runBackPropagation(trainDataset,
-							 pDatosTest,
-							 maxIter,
-							 errorTrain,
-							 errorTest,
-							 ccrTrain,
-							 ccrTest,
-							 MultilayerPerceptron::getErrorFunction(errorFunction));
 }
 
 // Optional Kaggle: Save the model weights in a textfile

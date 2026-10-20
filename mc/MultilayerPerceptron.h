@@ -99,12 +99,10 @@ namespace mc
         /** Vector containing every layer in sequence from input to output */
         std::vector<Layer> layers;
 
-        bool outputSoftmax{false};
-
-        bool onlineTraining{false};
+        bool outSoftmax{false};
 
         /**
-         * @brief Initializes all network weights with random values uniformly sampled in [-1.0, 1.0].
+         * @brief Initializes all network weights with random values uniformly sampled in [-\frac{1}{\sqrt{n_{h-1}}},\frac{1}{\sqrt{n_{h-1}}}] where n-1 stands for the number of connections to the previous layer.
          */
         void randomWeights();
 
@@ -137,8 +135,6 @@ namespace mc
          */
         void forwardPropagate();
 
-
-
         /**
          * @brief Backpropagates the output error gradients from the output layer to the first hidden layer.
          *
@@ -154,7 +150,7 @@ namespace mc
         /**
          * @brief Updates network weights by applying the accumulated deltaW and momentum term.
          */
-        void weightAdjustment();
+        void weightAdjustment(int nOfPatterns = 1);
 
         /**
          * @brief Prints the network architecture and all layer weight matrices to standard output.
@@ -168,15 +164,22 @@ namespace mc
          * @param[in] target Desired target output vector for the pattern.
          * @param[in] errorFunc Error function pointer.
          */
-        void performEpoch(const std::vector<double> &input, const std::vector<double> &target, ErrorFunctionType errorFunc);
+        void performEpochOnline(const std::vector<double> &input, const std::vector<double> &target);
+
+        /**
+         * @brief Performs a single offline training epoch step for one input-target pattern pair using a function pointer.
+         *
+         * @param[in] input Input feature vector for the pattern.
+         * @param[in] target Desired target output vector for the pattern.
+         * @param[in] errorFunc Error function pointer.
+         */
+        void performEpochOffline(const std::vector<double> &input, const std::vector<double> &target);
 
     public:
         /** Learning rate parameter (\f$\eta\f$) */
         double eta{0.1};
         /** Momentum factor parameter (\f$\mu\f$) */
         double mu{0.9};
-        /** Oline training parameter: true->online, false->offline  */
-        bool online;
 
         /**
          * @brief Default constructor for MultilayerPerceptron.
@@ -190,8 +193,6 @@ namespace mc
          * @param[in] npl Vector specifying the number of neurons in each layer.
          */
         MultilayerPerceptron(int nl, const std::vector<int> &npl);
-
-
 
         /**
          * @brief Calculates the error using the default error metric (MSE) for backwards compatibility.
@@ -225,7 +226,6 @@ namespace mc
          */
         static ErrorFunctionType getErrorFunction(int code);
 
-
         /**
          * @brief Evaluates the network on a given dataset and returns the error using a function pointer.
          *
@@ -234,15 +234,6 @@ namespace mc
          * @return Error across all patterns in the dataset.
          */
         double test(const util::Dataset &dataset, ErrorFunctionType errorFunc);
-
-        /**
-         * @brief Evaluates the network on a given dataset and returns the error.
-         *
-         * @param[in] dataset The dataset containing input patterns and expected outputs.
-         * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
-         * @return Error across all patterns in the dataset.
-         */
-        double test(const util::Dataset &dataset, int errorFunction = 0);
 
         /**
          * @brief Tests the network with a dataset and returns the classification correctness rate (CCR).
@@ -265,15 +256,7 @@ namespace mc
          * @param[in] trainDataset Training dataset.
          * @param[in] errorFunc Pointer to error member function.
          */
-        void train(const util::Dataset &trainDataset, ErrorFunctionType errorFunc);
-
-        /**
-         * @brief Trains the network for one epoch over the given training dataset.
-         *
-         * @param[in] trainDataset Training dataset.
-         * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
-         */
-        void train(const util::Dataset &trainDataset, int errorFunction = 0);
+        void train(const util::Dataset &trainDataset, bool onlineTraining);
 
         /**
          * @brief Performs backpropagation training on the given datasets using a function pointer.
@@ -294,41 +277,11 @@ namespace mc
                                 double &errorTest,
                                 double &ccrTrain,
                                 double &ccrTest,
+                                double eta,
+                                double mu,
+                                bool outSoftmax,
+                                bool onlineTraining,
                                 ErrorFunctionType errorFunc);
-
-        /**
-         * @brief Performs backpropagation training on the given datasets.
-         *
-         * @param[in] trainDataset Training dataset.
-         * @param[in] testDataset Test dataset for evaluation.
-         * @param[in] maxIter Maximum number of training iterations.
-         * @param[out] errorTrain Training error after training.
-         * @param[out] errorTest Test error after training.
-         * @param[out] ccrTrain Classification correctness rate on training set.
-         * @param[out] ccrTest Classification correctness rate on test set.
-         * @param[in] errorFunction Error function to use: 0 = MSE, 1 = Cross Entropy.
-         */
-        void runBackPropagation(const util::Dataset &trainDataset,
-                                const util::Dataset &testDataset,
-                                std::size_t maxIter,
-                                double &errorTrain,
-                                double &errorTest,
-                                double &ccrTrain,
-                                double &ccrTest,
-                                int errorFunction = 0);
-
-        /**
-         * @brief Backward compatibility wrapper for runOnlineBackPropagation.
-         */
-        void runOnlineBackPropagation(const util::Dataset &trainDataset,
-                                      const util::Dataset &testDataset,
-                                      std::size_t maxIter,
-                                      double &errorTrain,
-                                      double &errorTest)
-        {
-            double ccrTr = 0.0, ccrTe = 0.0;
-            runBackPropagation(trainDataset, testDataset, maxIter, errorTrain, errorTest, ccrTr, ccrTe, 0);
-        }
 
         /**
          * @brief Saves the network architecture and model weights to a text file.
