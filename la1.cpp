@@ -18,6 +18,34 @@
 #include "mc/MultilayerPerceptron.h"
 #include "mc/util.h"
 
+void printHelp(const std::string &programName)
+{
+    std::cout << "Multilayer Perceptron (MLP) for Classification & Regression\n\n"
+              << "Usage:\n"
+              << "  " << programName << " -t <train_file> [OPTIONS]\n"
+              << "  " << programName << " -T <test_file> -p -w <weight_file> [OPTIONS]\n\n"
+              << "Options:\n"
+              << "  -t <file>         Path to training dataset file (Required for training)\n"
+              << "  -T <file>         Path to test dataset file (Defaults to training dataset if omitted)\n"
+              << "  -i <int>          Maximum number of training iterations/epochs (Default: 1000)\n"
+              << "  -l <int>          Number of hidden layers (Default: 1)\n"
+              << "  -h <int>          Number of neurons per hidden layer (Default: 4)\n"
+              << "  -e <double>       Learning rate parameter eta (Default: 0.7)\n"
+              << "  -m <double>       Momentum factor parameter mu (Default: 1.0)\n"
+              << "  -o                Enable online training mode (Default: offline/batch)\n"
+              << "  -f <0|1>          Error function: 0 = MSE, 1 = Cross-Entropy (Default: 0)\n"
+              << "  -s                Enable Softmax activation on output layer (Default: Sigmoid)\n"
+              << "  -n                Normalize input features to [-1, 1] (Default: false)\n"
+              << "  -w <file>         File path to save best weights (training) or read them (prediction)\n"
+              << "  -p                Enable Kaggle prediction mode (outputs CSV Id,Category)\n"
+              << "  -c, --csv <file>  Append final metrics (Mean +- SD) to a CSV file\n"
+              << "  --help            Display this help message and exit\n\n"
+              << "Examples:\n"
+              << "  " << programName << " -t dat/train_compas.dat -T dat/test_compas.dat -s -f 1 -n\n"
+              << "  " << programName << " -t dat/train_xor.dat -o -i 500 -w weights.txt\n"
+              << "  " << programName << " -T dat/test_nomnist.dat -p -w weights.txt > submission.csv\n";
+}
+
 int main(int argc, char **argv)
 {
     // Convert command-line arguments to std::vector<std::string>
@@ -54,7 +82,12 @@ int main(int argc, char **argv)
     {
         const std::string &arg = args[i];
 
-        if (arg == "-t")
+        if (arg == "--help" || arg == "-help" || arg == "-?")
+        {
+            printHelp(args[0]);
+            return EXIT_SUCCESS;
+        }
+        else if (arg == "-t")
         {
             if (i + 1 < args.size())
             {
@@ -199,7 +232,7 @@ int main(int argc, char **argv)
         }
         else
         {
-            std::cerr << "Unknown option `" << arg << "'.\n";
+            std::cerr << "Unknown option `" << arg << "'. Run with --help for usage details.\n";
             return EXIT_FAILURE;
         }
     }
@@ -212,7 +245,7 @@ int main(int argc, char **argv)
 
         if (tvalue.empty())
         {
-            std::cerr << "Error: Training (-t) dataset must be specified.\n";
+            std::cerr << "Error: Training (-t) dataset must be specified. Run with --help for usage details.\n";
             return EXIT_FAILURE;
         }
 
