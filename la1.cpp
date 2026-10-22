@@ -305,8 +305,6 @@ int main(int argc, char **argv)
         std::vector<double> testCCRs(seeds.size(), 0.0);
         double bestTestError = std::numeric_limits<double>::max();
 
-        mc::MultilayerPerceptron::ErrorFunctionType errorFunc = mc::MultilayerPerceptron::getErrorFunction(fValue);
-
         for (size_t i = 0; i < seeds.size(); ++i)
         {
             std::cout << "**********\n";
@@ -324,7 +322,7 @@ int main(int argc, char **argv)
                                    mvalue,
                                    softmaxFlag,
                                    onlineFlag,
-                                   errorFunc);
+                                   fValue);
             std::cout << "We end!! => Final test CCR: " << testCCRs[i] << "\n";
 
             // Save the weights every time a better model is found

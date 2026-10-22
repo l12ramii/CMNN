@@ -518,7 +518,7 @@ void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
 											  double mu,
 											  bool outSoftmax,
 											  bool onlineTraining,
-											  ErrorFunctionType errorFunc)
+											  int errorFunction)
 {
 	int countTrain = 0;
 
@@ -527,7 +527,8 @@ void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
 	this->eta = eta;
 	this->mu = mu;
 	this->outSoftmax = outSoftmax;
-	this->isCrossEntropy = (errorFunc == &MultilayerPerceptron::obtainErrorCrossEntropy);
+	this->isCrossEntropy = (errorFunction == 1);
+	mc::MultilayerPerceptron::ErrorFunctionType errorFunc = mc::MultilayerPerceptron::getErrorFunction(errorFunction);
 	double minTrainError = 0;
 	int iterWithoutImproving = 0;
 	double testError = 0;

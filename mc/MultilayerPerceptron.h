@@ -87,17 +87,15 @@ namespace mc
      */
     class MultilayerPerceptron
     {
-    public:
-        /**
-         * @brief Function pointer type for error calculation on a pattern.
-         */
-        using ErrorFunctionType = double (MultilayerPerceptron::*)(const std::vector<double> &);
-
     private:
         /** Total number of layers in the network (input + hidden + output) */
         int nOfLayers{0};
         /** Vector containing every layer in sequence from input to output */
         std::vector<Layer> layers;
+        /**
+         * @brief Function pointer type for error calculation on a pattern.
+         */
+        using ErrorFunctionType = double (MultilayerPerceptron::*)(const std::vector<double> &);
 
         /**
          * @brief Initializes network weights uniformly using Xavier/Glorot initialization.
@@ -184,6 +182,14 @@ namespace mc
          */
         void performEpochOffline(const std::vector<double> &input, const std::vector<double> &target);
 
+        /**
+         * @brief Resolves an integer code to an ErrorFunctionType pointer without ifs.
+         *
+         * @param[in] code 0 for MSE, 1 for Cross Entropy.
+         * @return Function pointer to the corresponding error method.
+         */
+        static ErrorFunctionType getErrorFunction(int code);
+
     public:
         /** Learning rate parameter (\f$\eta\f$) */
         double eta{0.1};
@@ -230,14 +236,6 @@ namespace mc
          * @return Cross Entropy error for the current pattern.
          */
         double obtainErrorCrossEntropy(const std::vector<double> &target);
-
-        /**
-         * @brief Resolves an integer code to an ErrorFunctionType pointer without ifs.
-         *
-         * @param[in] code 0 for MSE, 1 for Cross Entropy.
-         * @return Function pointer to the corresponding error method.
-         */
-        static ErrorFunctionType getErrorFunction(int code);
 
         /**
          * @brief Evaluates the network on a given dataset and returns the error using a function pointer.
@@ -291,7 +289,7 @@ namespace mc
          * @param[in] mu Momentum factor parameter (\f$\mu\f$).
          * @param[in] outSoftmax Whether to use Softmax on the output layer.
          * @param[in] onlineTraining Whether to train in online mode (true) or offline/batch mode (false).
-         * @param[in] errorFunc Pointer to error member function (&MultilayerPerceptron::obtainErrorMSE, etc.).
+         * @param[in] errorFunction Integer to indicate the error function: 0->MSE/1->Cross Entropy
          */
         void runBackPropagation(const util::Dataset &trainDataset,
                                 const util::Dataset &testDataset,
@@ -304,7 +302,7 @@ namespace mc
                                 double mu,
                                 bool outSoftmax,
                                 bool onlineTraining,
-                                ErrorFunctionType errorFunc);
+                                int errorFunction);
 
         /**
          * @brief Saves the network architecture and model weights to a text file.

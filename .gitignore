@@ -12,9 +12,10 @@
 *.bib
 *.fls
 *.fdb*
-/memoria
+/memoria*
 *.py
 *.csv
 *.txt
 /.vscode
 roadmap.md
+/experimentos*
