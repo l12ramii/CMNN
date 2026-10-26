@@ -172,8 +172,7 @@ void MultilayerPerceptron::forwardPropagate()
 			netVector[j] = net;
 		}
 
-		std::vector<double> outVector = std::vector<double>(this->layers.back().nOfNeurons);
-		outVector = util::softmax(netVector);
+		std::vector<double> outVector = util::softmax(netVector);
 
 		for (size_t j = 0; j < this->layers.back().nOfNeurons; j++)
 		{
@@ -564,7 +563,10 @@ void MultilayerPerceptron::runBackPropagation(const util::Dataset &trainDataset,
 
 		countTrain++;
 
-		std::cout << "Iteration " << countTrain << "	 Training error: " << trainError << std::endl;
+		double currentTestError = test(pDatosTest, errorFunc);
+		double currentTrainCCR = testClassification(trainDataset);
+		double currentTestCCR = testClassification(pDatosTest);
+		std::cout << "Iteration " << countTrain << "	 Training error: " << trainError << "	 Test error: " << currentTestError << "	 Train CCR: " << currentTrainCCR << "	 Test CCR: " << currentTestCCR << std::endl;
 
 	} while (countTrain < maxIter);
 

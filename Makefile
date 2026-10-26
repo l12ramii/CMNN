@@ -32,7 +32,7 @@ CPPFLAGS := $(INC_FLAGS) -MMD -MP -O3
 # The final build step.
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
-	ln -sf $(TARGET_EXEC) $(BUILD_DIR)/la1
+	ln -sf $(TARGET_EXEC) $(BUILD_DIR)/main
 
 # Build step for C source
 $(BUILD_DIR)/%.c.o: %.c

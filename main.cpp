@@ -1,6 +1,6 @@
 //============================================================================
 // Computational models
-// Name        : la1.cpp
+// Name        : main.cpp
 // Author      : Pedro A. Gutiérrez
 // Version     :
 // Copyright   : Universidad de Córdoba
@@ -74,6 +74,7 @@ int main(int argc, char **argv)
     // -h: Neurons per hidden layer
     // -e: Learning rate (eta)
     // -m: Momentum factor (mu)
+    // -f: error function (0->MSE/1->CE)
     // -n: Normalize dataset
     // -w: Weight file
     // -p: Kaggle prediction mode
